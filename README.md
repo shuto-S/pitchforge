@@ -153,6 +153,7 @@ Required GitHub repository variables:
 - `IDENTITY_PLATFORM_AUTH_DOMAIN`
 - `IDENTITY_PLATFORM_PROJECT_ID`
 - `AUTH_ADMIN_EMAILS`
+- `CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT`
 
 Optional GitHub repository variables:
 
@@ -175,6 +176,7 @@ Expected trigger substitutions:
   Identity Platform web app configuration
 - `_AUTH_ADMIN_EMAILS`: bootstrap admin email list. Prefer a single bootstrap email for automated
   deploy substitutions; add more users through the invite UI.
+- `_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT`: runtime service account used by Cloud Run.
 
 The GitHub Actions deploy service account needs permission to submit Cloud Build jobs.
 
