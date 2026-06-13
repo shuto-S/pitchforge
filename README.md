@@ -64,7 +64,7 @@ commands should go through `docker compose`.
 Key variables:
 
 - `NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY`, `NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN`,
-  `NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID`, `NEXT_PUBLIC_IDENTITY_PLATFORM_APP_ID` for Identity Platform web login
+  `NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID` for Identity Platform web login
 - `AUTH_ADMIN_EMAILS` for the bootstrap admin email allowed to manage invites
 - `SESSION_COOKIE_NAME=__session`
 - `AUTH_BYPASS_FOR_TEST=false` outside local tests and Docker Compose
@@ -152,7 +152,6 @@ Required GitHub repository variables:
 - `IDENTITY_PLATFORM_API_KEY`
 - `IDENTITY_PLATFORM_AUTH_DOMAIN`
 - `IDENTITY_PLATFORM_PROJECT_ID`
-- `IDENTITY_PLATFORM_APP_ID`
 - `AUTH_ADMIN_EMAILS`
 
 Optional GitHub repository variables:
@@ -172,7 +171,7 @@ Expected trigger substitutions:
 - `_IMAGE_TAG`: Image tag, normally the GitHub commit SHA
 - `_GCS_BUCKET`: Cloud Storage bucket used by the running app
 - `_GOOGLE_CLOUD_LOCATION`: Vertex AI location, for example `global`
-- `_IDENTITY_PLATFORM_API_KEY`, `_IDENTITY_PLATFORM_AUTH_DOMAIN`, `_IDENTITY_PLATFORM_PROJECT_ID`, `_IDENTITY_PLATFORM_APP_ID`:
+- `_IDENTITY_PLATFORM_API_KEY`, `_IDENTITY_PLATFORM_AUTH_DOMAIN`, `_IDENTITY_PLATFORM_PROJECT_ID`:
   Identity Platform web app configuration
 - `_AUTH_ADMIN_EMAILS`: bootstrap admin email list. Prefer a single bootstrap email for automated
   deploy substitutions; add more users through the invite UI.

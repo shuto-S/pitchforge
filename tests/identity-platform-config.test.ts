@@ -9,15 +9,13 @@ describe("Identity Platform client config", () => {
     const config = resolveIdentityPlatformConfig({
       NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY: "identity-api-key",
       NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN: "identity.example.com",
-      NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID: "identity-project",
-      NEXT_PUBLIC_IDENTITY_PLATFORM_APP_ID: "identity-app"
+      NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID: "identity-project"
     });
 
     expect(config).toEqual({
       apiKey: "identity-api-key",
       authDomain: "identity.example.com",
-      projectId: "identity-project",
-      appId: "identity-app"
+      projectId: "identity-project"
     });
   });
 
@@ -28,8 +26,7 @@ describe("Identity Platform client config", () => {
 
     expect(missingIdentityPlatformConfigKeys(config)).toEqual([
       "authDomain",
-      "projectId",
-      "appId"
+      "projectId"
     ]);
   });
 });
