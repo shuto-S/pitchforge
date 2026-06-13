@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/client/firebase";
+import { getIdentityPlatformAuth } from "@/lib/client/identity-platform";
 
 type CurrentUser = {
   uid: string;
@@ -58,7 +58,7 @@ export function SiteHeader() {
     setIsLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     try {
-      await signOut(getFirebaseAuth());
+      await signOut(getIdentityPlatformAuth());
     } catch {
       // Server session logout is the source of truth here.
     }

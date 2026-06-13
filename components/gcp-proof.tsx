@@ -31,7 +31,7 @@ const proofItems = [
     body: "スクリーンショットや生成物を保存し、AI処理と提出準備に接続します。"
   },
   {
-    title: "Firebase Auth",
+    title: "Identity Platform",
     body: "Googleログインと招待制で、ユーザーごとのワークスペースを分離します。"
   }
 ];

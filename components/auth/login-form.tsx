@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/client/firebase";
+import { getIdentityPlatformAuth } from "@/lib/client/identity-platform";
 
 type SessionResponse = {
   user?: {
@@ -28,7 +28,7 @@ export function LoginForm() {
     setIsSigningIn(true);
 
     try {
-      const auth = getFirebaseAuth();
+      const auth = getIdentityPlatformAuth();
       const credential = await signInWithPopup(auth, new GoogleAuthProvider());
       const idToken = await credential.user.getIdToken();
 

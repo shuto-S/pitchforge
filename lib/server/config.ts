@@ -63,7 +63,7 @@ export function getPublicRuntimeStatus() {
     aiMode: resolvedAiMode,
     datastoreMode: config.datastoreMode,
     storageMode: config.storageMode,
-    authMode: config.authBypassForTest ? "test-bypass" : "firebase",
+    authMode: config.authBypassForTest ? "test-bypass" : "identity-platform",
     cloudRunService: process.env.K_SERVICE ? "configured" : "not-configured",
     googleCloudProject: config.googleCloudProject ? "configured" : "not-configured",
     gcsBucket: config.gcsBucket ? "configured" : "not-configured"

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import {
-  createFirebaseSession,
+  createIdentityPlatformSession,
   getSessionCookieName
 } from "@/lib/server/auth";
 import { jsonError } from "@/lib/server/http";
@@ -15,7 +15,8 @@ const sessionRequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const parsed = sessionRequestSchema.parse(await request.json());
-    const { sessionCookie, maxAgeSeconds, user } = await createFirebaseSession(parsed.idToken);
+    const { sessionCookie, maxAgeSeconds, user } =
+      await createIdentityPlatformSession(parsed.idToken);
     const response = NextResponse.json({ user });
     response.cookies.set(getSessionCookieName(), sessionCookie, {
       httpOnly: true,

@@ -41,12 +41,12 @@ export function isAdminEmail(email: string): boolean {
   return parseEmailList(getRuntimeConfig().authAdminEmails).has(normalizeEmail(email));
 }
 
-export async function createFirebaseSession(idToken: string): Promise<{
+export async function createIdentityPlatformSession(idToken: string): Promise<{
   sessionCookie: string;
   maxAgeSeconds: number;
   user: AuthUser;
 }> {
-  const auth = getFirebaseAuth();
+  const auth = getIdentityPlatformAdminAuth();
   const decoded = await auth.verifyIdToken(idToken);
   const nowSeconds = Date.now() / 1000;
   if (!decoded.auth_time || nowSeconds - decoded.auth_time > 5 * 60) {
@@ -80,7 +80,10 @@ export async function requireUser(request: Request): Promise<AuthUser> {
   }
 
   try {
-    const decoded = await getFirebaseAuth().verifySessionCookie(sessionCookie, true);
+    const decoded = await getIdentityPlatformAdminAuth().verifySessionCookie(
+      sessionCookie,
+      true
+    );
     return await syncUserFromToken(decoded);
   } catch (error) {
     if (isAuthError(error)) {
@@ -151,7 +154,7 @@ async function syncUserFromToken(decoded: DecodedIdToken): Promise<AuthUser> {
   };
 }
 
-function getFirebaseAuth() {
+function getIdentityPlatformAdminAuth() {
   if (!getApps().length) {
     initializeApp({
       credential: applicationDefault()

@@ -63,8 +63,8 @@ commands should go through `docker compose`.
 
 Key variables:
 
-- `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`,
-  `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` for Firebase Auth web login
+- `NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY`, `NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN`,
+  `NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID`, `NEXT_PUBLIC_IDENTITY_PLATFORM_APP_ID` for Identity Platform web login
 - `AUTH_ADMIN_EMAILS` for the bootstrap admin email allowed to manage invites
 - `SESSION_COOKIE_NAME=__session`
 - `AUTH_BYPASS_FOR_TEST=false` outside local tests and Docker Compose
@@ -81,11 +81,12 @@ Run environment variables, GitHub repository variables, or a secret manager.
 
 ## Authentication and User Data
 
-PitchForge uses Firebase Authentication with a server-side session cookie. Cloud Run remains
+PitchForge uses Identity Platform with a server-side session cookie. Cloud Run remains
 publicly reachable, but protected pages and APIs require a valid app session.
 
-- Enable the Google sign-in provider in Firebase Authentication before deploying.
-- `/login` signs in with Google and exchanges the Firebase ID token for an httpOnly session cookie.
+- Enable the Google sign-in provider in Identity Platform before deploying.
+- `/login` signs in with Google and exchanges the Identity Platform ID token for an httpOnly session cookie.
+- Only `NEXT_PUBLIC_IDENTITY_PLATFORM_*` variables are supported for auth configuration; legacy auth env aliases are intentionally not read.
 - `/api/projects`, assets, runs, events, artifacts, and exports are scoped to the authenticated
   project owner.
 - `/admin/invites` is limited to emails listed in `AUTH_ADMIN_EMAILS`.
@@ -107,12 +108,13 @@ docker compose run --rm seed
 
 Prepare Google Cloud resources outside this repository:
 
-1. Enable required APIs for Cloud Run, Vertex AI, Firestore, Cloud Storage, and Cloud Build.
+1. Enable required APIs for Cloud Run, Vertex AI, Firestore, Cloud Storage, Cloud Build, and Identity Platform.
 2. Create a Firestore database and a Cloud Storage bucket.
-3. Configure the Cloud Run service account with only the permissions required for Firestore, Storage, and Vertex AI.
-4. Deploy with placeholder values replaced in your shell or deployment system, not in committed files.
+3. Enable the Google sign-in provider in Identity Platform.
+4. Configure the Cloud Run service account with only the permissions required for Firestore, Storage, and Vertex AI.
+5. Deploy with placeholder values replaced in your shell or deployment system, not in committed files.
 
-Firebase web config is used by the client bundle, so `NEXT_PUBLIC_FIREBASE_*` values must be
+Identity Platform web config is used by the client bundle, so `NEXT_PUBLIC_IDENTITY_PLATFORM_*` values must be
 available during the Next.js build step. The GitHub Actions + Cloud Build path below passes them as
 Docker build args and runtime env values.
 
@@ -147,10 +149,10 @@ Required GitHub repository variables:
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_DEPLOY_SERVICE_ACCOUNT`
 - `GCS_BUCKET`
-- `FIREBASE_API_KEY`
-- `FIREBASE_AUTH_DOMAIN`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_APP_ID`
+- `IDENTITY_PLATFORM_API_KEY`
+- `IDENTITY_PLATFORM_AUTH_DOMAIN`
+- `IDENTITY_PLATFORM_PROJECT_ID`
+- `IDENTITY_PLATFORM_APP_ID`
 - `AUTH_ADMIN_EMAILS`
 
 Optional GitHub repository variables:
@@ -170,8 +172,8 @@ Expected trigger substitutions:
 - `_IMAGE_TAG`: Image tag, normally the GitHub commit SHA
 - `_GCS_BUCKET`: Cloud Storage bucket used by the running app
 - `_GOOGLE_CLOUD_LOCATION`: Vertex AI location, for example `global`
-- `_FIREBASE_API_KEY`, `_FIREBASE_AUTH_DOMAIN`, `_FIREBASE_PROJECT_ID`, `_FIREBASE_APP_ID`:
-  Firebase web app configuration
+- `_IDENTITY_PLATFORM_API_KEY`, `_IDENTITY_PLATFORM_AUTH_DOMAIN`, `_IDENTITY_PLATFORM_PROJECT_ID`, `_IDENTITY_PLATFORM_APP_ID`:
+  Identity Platform web app configuration
 - `_AUTH_ADMIN_EMAILS`: bootstrap admin email list. Prefer a single bootstrap email for automated
   deploy substitutions; add more users through the invite UI.
 
