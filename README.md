@@ -71,20 +71,43 @@ gcloud run deploy pitchforge \
 
 Do not commit the concrete project ID, bucket name, or credentials used for deployment.
 
-## Automatic Deploy from GitHub main
+## Automatic Deploy from GitHub main after CI
 
-This repository includes `cloudbuild.yaml` for a Cloud Build trigger. Keep real project identifiers
-and bucket names in trigger substitutions, not in committed files.
+This repository uses GitHub Actions for the gate and Cloud Build for the deploy. The deploy job runs
+only after `npm run lint`, `npm test`, and `npm run build` pass on `main`.
+
+The workflow keeps CI fast by using npm cache, one dependency install for the CI job, and a separate
+Cloud Build image build only on successful `main` pushes.
+
+Keep real project identifiers, service account emails, Workload Identity Provider names, and bucket
+names in GitHub repository variables, not in committed files.
+
+Required GitHub repository variables:
+
+- `GCP_PROJECT_ID`
+- `GCP_WORKLOAD_IDENTITY_PROVIDER`
+- `GCP_DEPLOY_SERVICE_ACCOUNT`
+- `GCS_BUCKET`
+
+Optional GitHub repository variables:
+
+- `GCP_REGION`, default `asia-northeast1`
+- `CLOUD_RUN_SERVICE`, default `pitchforge`
+- `AR_REPOSITORY`, default `pitchforge`
+- `GOOGLE_CLOUD_LOCATION`, default `global`
+
+`cloudbuild.yaml` is called by the deploy job after CI succeeds.
 
 Expected trigger substitutions:
 
 - `_REGION`: Cloud Run and Artifact Registry region, for example `asia-northeast1`
 - `_SERVICE`: Cloud Run service name, for example `pitchforge`
 - `_AR_REPOSITORY`: Artifact Registry Docker repository name
+- `_IMAGE_TAG`: Image tag, normally the GitHub commit SHA
 - `_GCS_BUCKET`: Cloud Storage bucket used by the running app
 - `_GOOGLE_CLOUD_LOCATION`: Vertex AI location, for example `global`
 
-The trigger should run on pushes to `^main$` and use `cloudbuild.yaml`.
+The GitHub Actions deploy service account needs permission to submit Cloud Build jobs.
 
 Cloud Build's service account needs permissions to:
 

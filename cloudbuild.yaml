@@ -2,6 +2,7 @@ substitutions:
   _REGION: asia-northeast1
   _SERVICE: pitchforge
   _AR_REPOSITORY: pitchforge
+  _IMAGE_TAG: manual
   _GCS_BUCKET: replace-with-trigger-substitution
   _GOOGLE_CLOUD_LOCATION: global
 
@@ -11,14 +12,14 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
       - .
 
   - id: push-image
     name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
 
   - id: deploy-cloud-run
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -27,14 +28,14 @@ steps:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
       - --set-env-vars=NEXT_PUBLIC_DEMO_MODE=true,AI_PROVIDER=gemini,GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${_GOOGLE_CLOUD_LOCATION},DATASTORE_MODE=firestore,STORAGE_MODE=gcs,GCS_BUCKET=${_GCS_BUCKET}
 
 images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${COMMIT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
 
 options:
   logging: CLOUD_LOGGING_ONLY
