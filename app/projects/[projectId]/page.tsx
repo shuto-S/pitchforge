@@ -1,0 +1,15 @@
+import { ProjectWorkspace } from "@/components/project-workspace";
+
+export default async function ProjectPage({
+  params
+}: {
+  params: Promise<{ projectId: string }>;
+}) {
+  const { projectId } = await params;
+
+  return (
+    <main className="container py-8">
+      <ProjectWorkspace projectId={projectId} />
+    </main>
+  );
+}
