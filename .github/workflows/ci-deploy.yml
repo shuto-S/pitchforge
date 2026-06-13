@@ -114,7 +114,8 @@ jobs:
 
       - name: Build and deploy with Cloud Build
         run: |
-          gcloud builds submit . \
+          gcloud builds submit "https://github.com/${GITHUB_REPOSITORY}.git" \
             --project="${GCP_PROJECT_ID}" \
             --config=cloudbuild.yaml \
+            --git-source-revision="${GITHUB_SHA}" \
             --substitutions="_REGION=${GCP_REGION},_SERVICE=${CLOUD_RUN_SERVICE},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_TAG=${GITHUB_SHA},_GCS_BUCKET=${GCS_BUCKET},_GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},_IDENTITY_PLATFORM_API_KEY_NAME=${IDENTITY_PLATFORM_API_KEY_NAME},_IDENTITY_PLATFORM_AUTH_DOMAIN=${IDENTITY_PLATFORM_AUTH_DOMAIN},_IDENTITY_PLATFORM_PROJECT_ID=${IDENTITY_PLATFORM_PROJECT_ID},_AUTH_ADMIN_EMAILS=${AUTH_ADMIN_EMAILS},_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}"
