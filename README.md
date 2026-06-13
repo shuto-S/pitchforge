@@ -149,7 +149,7 @@ Required GitHub repository variables:
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_DEPLOY_SERVICE_ACCOUNT`
 - `GCS_BUCKET`
-- `IDENTITY_PLATFORM_API_KEY`
+- `IDENTITY_PLATFORM_API_KEY_NAME`
 - `IDENTITY_PLATFORM_AUTH_DOMAIN`
 - `IDENTITY_PLATFORM_PROJECT_ID`
 - `AUTH_ADMIN_EMAILS`
@@ -172,8 +172,9 @@ Expected trigger substitutions:
 - `_IMAGE_TAG`: Image tag, normally the GitHub commit SHA
 - `_GCS_BUCKET`: Cloud Storage bucket used by the running app
 - `_GOOGLE_CLOUD_LOCATION`: Vertex AI location, for example `global`
-- `_IDENTITY_PLATFORM_API_KEY`, `_IDENTITY_PLATFORM_AUTH_DOMAIN`, `_IDENTITY_PLATFORM_PROJECT_ID`:
-  Identity Platform web app configuration
+- `_IDENTITY_PLATFORM_API_KEY_NAME`: Identity Platform API key resource name. Cloud Build resolves
+  the key string during image build; do not store the key string in GitHub Variables.
+- `_IDENTITY_PLATFORM_AUTH_DOMAIN`, `_IDENTITY_PLATFORM_PROJECT_ID`: Identity Platform web app configuration
 - `_AUTH_ADMIN_EMAILS`: bootstrap admin email list. Prefer a single bootstrap email for automated
   deploy substitutions; add more users through the invite UI.
 - `_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT`: runtime service account used by Cloud Run.

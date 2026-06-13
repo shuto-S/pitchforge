@@ -5,26 +5,39 @@ substitutions:
   _IMAGE_TAG: manual
   _GCS_BUCKET: replace-with-trigger-substitution
   _GOOGLE_CLOUD_LOCATION: global
-  _IDENTITY_PLATFORM_API_KEY: replace-with-trigger-substitution
+  _IDENTITY_PLATFORM_API_KEY_NAME: replace-with-trigger-substitution
   _IDENTITY_PLATFORM_AUTH_DOMAIN: replace-with-trigger-substitution
   _IDENTITY_PLATFORM_PROJECT_ID: replace-with-trigger-substitution
   _AUTH_ADMIN_EMAILS: replace-with-trigger-substitution
   _CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: replace-with-trigger-substitution
 
 steps:
+  - id: resolve-identity-platform-api-key
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -euo
+      - pipefail
+      - -c
+      - |
+        gcloud services api-keys get-key-string "${_IDENTITY_PLATFORM_API_KEY_NAME}" \
+          --project="${PROJECT_ID}" \
+          --format="value(keyString)" > /workspace/.identity-platform-api-key
+
   - id: build-image
     name: gcr.io/cloud-builders/docker
+    entrypoint: bash
     args:
-      - build
-      - --build-arg
-      - NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY=${_IDENTITY_PLATFORM_API_KEY}
-      - --build-arg
-      - NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN=${_IDENTITY_PLATFORM_AUTH_DOMAIN}
-      - --build-arg
-      - NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID=${_IDENTITY_PLATFORM_PROJECT_ID}
-      - -t
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
-      - .
+      - -euo
+      - pipefail
+      - -c
+      - |
+        docker build \
+          --build-arg "NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY=$(cat /workspace/.identity-platform-api-key)" \
+          --build-arg "NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN=${_IDENTITY_PLATFORM_AUTH_DOMAIN}" \
+          --build-arg "NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID=${_IDENTITY_PLATFORM_PROJECT_ID}" \
+          -t "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}" \
+          .
 
   - id: push-image
     name: gcr.io/cloud-builders/docker
@@ -44,7 +57,7 @@ steps:
       - --platform=managed
       - --allow-unauthenticated
       - --service-account=${_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}
-      - --set-env-vars=^|^NEXT_PUBLIC_DEMO_MODE=true|AI_PROVIDER=gemini|GOOGLE_GENAI_USE_VERTEXAI=true|GOOGLE_CLOUD_PROJECT=${PROJECT_ID}|GOOGLE_CLOUD_LOCATION=${_GOOGLE_CLOUD_LOCATION}|DATASTORE_MODE=firestore|STORAGE_MODE=gcs|GCS_BUCKET=${_GCS_BUCKET}|NEXT_PUBLIC_IDENTITY_PLATFORM_API_KEY=${_IDENTITY_PLATFORM_API_KEY}|NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN=${_IDENTITY_PLATFORM_AUTH_DOMAIN}|NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID=${_IDENTITY_PLATFORM_PROJECT_ID}|AUTH_ADMIN_EMAILS=${_AUTH_ADMIN_EMAILS}|SESSION_COOKIE_NAME=__session|AUTH_BYPASS_FOR_TEST=false
+      - --set-env-vars=^|^NEXT_PUBLIC_DEMO_MODE=true|AI_PROVIDER=gemini|GOOGLE_GENAI_USE_VERTEXAI=true|GOOGLE_CLOUD_PROJECT=${PROJECT_ID}|GOOGLE_CLOUD_LOCATION=${_GOOGLE_CLOUD_LOCATION}|DATASTORE_MODE=firestore|STORAGE_MODE=gcs|GCS_BUCKET=${_GCS_BUCKET}|NEXT_PUBLIC_IDENTITY_PLATFORM_AUTH_DOMAIN=${_IDENTITY_PLATFORM_AUTH_DOMAIN}|NEXT_PUBLIC_IDENTITY_PLATFORM_PROJECT_ID=${_IDENTITY_PLATFORM_PROJECT_ID}|AUTH_ADMIN_EMAILS=${_AUTH_ADMIN_EMAILS}|SESSION_COOKIE_NAME=__session|AUTH_BYPASS_FOR_TEST=false
 
 images:
   - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE}:${_IMAGE_TAG}
