@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireProjectOwner } from "@/lib/server/auth";
 import { getRepository } from "@/lib/server/db";
-import { jsonError, notFound } from "@/lib/server/http";
+import { jsonError } from "@/lib/server/http";
 import { getObjectStorage } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
@@ -15,10 +16,7 @@ export async function POST(
   try {
     const { projectId } = await params;
     const repo = getRepository();
-    const project = await repo.getProject(projectId);
-    if (!project) {
-      return notFound("Project not found");
-    }
+    const { user } = await requireProjectOwner(request, projectId, repo);
 
     const existing = await repo.listAssets(projectId);
     const form = await request.formData();
@@ -49,6 +47,7 @@ export async function POST(
       const bytes = Buffer.from(await file.arrayBuffer());
       const asset = await storage.saveScreenshot({
         projectId,
+        ownerUid: user.uid,
         fileName: file.name,
         mimeType: file.type,
         bytes

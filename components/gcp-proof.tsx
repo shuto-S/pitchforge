@@ -7,6 +7,7 @@ type RuntimeStatus = {
   aiMode: string;
   datastoreMode: string;
   storageMode: string;
+  authMode: string;
   cloudRunService: string;
   googleCloudProject: string;
   gcsBucket: string;
@@ -28,6 +29,10 @@ const proofItems = [
   {
     title: "Cloud Storage",
     body: "スクリーンショットや生成物を保存し、AI処理と提出準備に接続します。"
+  },
+  {
+    title: "Firebase Auth",
+    body: "Googleログインと招待制で、ユーザーごとのワークスペースを分離します。"
   }
 ];
 
@@ -58,10 +63,11 @@ export function GcpProof() {
             <div>
               DB/Storage: {status.datastoreMode} / {status.storageMode}
             </div>
+            <div>Auth: {status.authMode}</div>
           </div>
         ) : null}
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         {proofItems.map((item) => (
           <article key={item.title} className="rounded-md border border-line bg-white p-4">
             <h3 className="font-semibold">{item.title}</h3>

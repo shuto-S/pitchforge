@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
+import { requireProjectOwner } from "@/lib/server/auth";
 import { getRepository } from "@/lib/server/db";
-import { jsonError, notFound } from "@/lib/server/http";
+import { jsonError } from "@/lib/server/http";
 import { runPitchForge } from "@/lib/server/ai/orchestrator";
 import { getObjectStorage } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const { projectId } = await params;
     const repo = getRepository();
-    const project = await repo.getProject(projectId);
-    if (!project) {
-      return notFound("Project not found");
-    }
+    await requireProjectOwner(request, projectId, repo);
     const existingRuns = await repo.listRuns(projectId);
     const activeRun = existingRuns.find((run) => ["queued", "running"].includes(run.status));
     if (activeRun) {

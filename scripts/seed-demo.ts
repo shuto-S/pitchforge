@@ -7,6 +7,8 @@ process.env.AI_PROVIDER = process.env.AI_PROVIDER ?? "mock";
 const repo = getRepository();
 
 const project = await repo.createProject({
+  ownerUid: "seed-user",
+  ownerEmail: "seed-user@example.test",
   title: "UserSignal Lake Agent",
   oneLiner: "ユーザーの声をAIで分類するやつ。GCPを使っています。",
   description:

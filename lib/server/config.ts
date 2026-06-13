@@ -40,6 +40,10 @@ export function getRuntimeConfig() {
     firestoreDatabaseId: process.env.FIRESTORE_DATABASE_ID ?? "(default)",
     gcsBucket: process.env.GCS_BUCKET,
     localDataDir: process.env.LOCAL_DATA_DIR ?? ".local-data",
+    sessionCookieName: process.env.SESSION_COOKIE_NAME ?? "__session",
+    authAdminEmails: process.env.AUTH_ADMIN_EMAILS ?? "",
+    authBypassForTest:
+      process.env.AUTH_BYPASS_FOR_TEST === "true" && process.env.NODE_ENV !== "production",
     isCloudRun: Boolean(process.env.K_SERVICE)
   };
 }
@@ -59,6 +63,7 @@ export function getPublicRuntimeStatus() {
     aiMode: resolvedAiMode,
     datastoreMode: config.datastoreMode,
     storageMode: config.storageMode,
+    authMode: config.authBypassForTest ? "test-bypass" : "firebase",
     cloudRunService: process.env.K_SERVICE ? "configured" : "not-configured",
     googleCloudProject: config.googleCloudProject ? "configured" : "not-configured",
     gcsBucket: config.gcsBucket ? "configured" : "not-configured"

@@ -21,6 +21,8 @@ export const projectInputSchema = z.object({
 
 export const projectSchema = projectInputSchema.extend({
   id: z.string(),
+  ownerUid: z.string().min(1),
+  ownerEmail: z.string().email(),
   productUrl: httpsUrlSchema.optional(),
   githubUrl: httpsUrlSchema.optional(),
   status: z.enum(["draft", "ready", "running", "completed", "failed"]),
@@ -31,6 +33,7 @@ export const projectSchema = projectInputSchema.extend({
 export const assetSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  ownerUid: z.string().min(1),
   kind: z.enum(["screenshot", "export", "generated_image"]),
   fileName: z.string(),
   mimeType: z.string(),

@@ -2,6 +2,7 @@ import type { Asset } from "@/lib/schemas/project";
 
 export type UploadObjectInput = {
   projectId: string;
+  ownerUid: string;
   fileName: string;
   mimeType: string;
   bytes: Buffer;

@@ -10,6 +10,10 @@ function safeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
 }
 
+function safePathSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+}
+
 export class LocalObjectStorage implements ObjectStorage {
   private readonly root: string;
 
@@ -23,7 +27,14 @@ export class LocalObjectStorage implements ObjectStorage {
   async saveScreenshot(input: UploadObjectInput): Promise<Asset> {
     const id = makeId("asset");
     const fileName = `${id}_${safeFileName(input.fileName)}`;
-    const relativePath = path.join("projects", input.projectId, "screenshots", fileName);
+    const relativePath = path.join(
+      "users",
+      safePathSegment(input.ownerUid),
+      "projects",
+      input.projectId,
+      "screenshots",
+      fileName
+    );
     const absolutePath = path.join(this.root, relativePath);
     await mkdir(path.dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, input.bytes);
@@ -31,6 +42,7 @@ export class LocalObjectStorage implements ObjectStorage {
     return {
       id,
       projectId: input.projectId,
+      ownerUid: input.ownerUid,
       kind: "screenshot",
       fileName: input.fileName,
       mimeType: input.mimeType,

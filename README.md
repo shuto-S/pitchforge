@@ -14,22 +14,60 @@ This repository is intended to be public.
 
 ## Local Development
 
+Local development is Docker Compose only. Do not run the app directly on the host Node.js runtime
+for normal development.
+
+Start the app:
+
 ```bash
-npm install
-cp .env.example .env.local
-npm run dev
+docker compose up web
 ```
 
-By default, the app runs in demo/local mode:
+Then open `http://localhost:3000`.
+
+Run checks inside containers:
+
+```bash
+docker compose run --rm lint
+docker compose run --rm test
+docker compose run --rm build
+```
+
+Seed the local demo project:
+
+```bash
+docker compose run --rm seed
+```
+
+Reset local container state if needed:
+
+```bash
+docker compose down -v
+```
+
+Docker Compose uses `Dockerfile.dev` and does not change the Cloud Run production `Dockerfile` or
+`cloudbuild.yaml`.
+
+Local Compose defaults to demo/mock/local mode:
 
 - `DATASTORE_MODE=local` stores JSON under `.local-data/db.json`.
 - `STORAGE_MODE=local` stores uploads under `.local-data/uploads`.
-- `AI_PROVIDER=auto` uses the mock provider unless Gemini credentials are configured.
+- `AI_PROVIDER=mock`
+- `AUTH_BYPASS_FOR_TEST=true`
+- `.local-data` is stored in the Compose `local_data` volume, not on the host working tree.
+
+The host `package.json` scripts are still used by CI and Docker images, but local development
+commands should go through `docker compose`.
 
 ## Environment
 
 Key variables:
 
+- `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`,
+  `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` for Firebase Auth web login
+- `AUTH_ADMIN_EMAILS` for the bootstrap admin email allowed to manage invites
+- `SESSION_COOKIE_NAME=__session`
+- `AUTH_BYPASS_FOR_TEST=false` outside local tests and Docker Compose
 - `AI_PROVIDER=auto|mock|gemini`
 - `GEMINI_MODEL=gemini-flash-latest`
 - `GEMINI_API_KEY=` for API-key mode
@@ -38,16 +76,31 @@ Key variables:
 - `STORAGE_MODE=local|gcs`
 - `GCS_BUCKET=your-gcs-bucket-name`
 
-Use placeholders in documentation. Put real values only in local environment files, Cloud Run environment variables, or a secret manager.
+Use placeholders in documentation. Put real values only in ignored Docker Compose overrides, Cloud
+Run environment variables, GitHub repository variables, or a secret manager.
 
-## Scripts
+## Authentication and User Data
+
+PitchForge uses Firebase Authentication with a server-side session cookie. Cloud Run remains
+publicly reachable, but protected pages and APIs require a valid app session.
+
+- Enable the Google sign-in provider in Firebase Authentication before deploying.
+- `/login` signs in with Google and exchanges the Firebase ID token for an httpOnly session cookie.
+- `/api/projects`, assets, runs, events, artifacts, and exports are scoped to the authenticated
+  project owner.
+- `/admin/invites` is limited to emails listed in `AUTH_ADMIN_EMAILS`.
+- Invited users are stored in Firestore/local storage; uninvited users receive a 403 and cannot use
+  the workspace.
+- Billing, plan, quota, and usage limits are intentionally not implemented yet.
+
+## Container Commands
 
 ```bash
-npm run dev
-npm test
-npm run lint
-npm run build
-npm run seed:demo
+docker compose up web
+docker compose run --rm lint
+docker compose run --rm test
+docker compose run --rm build
+docker compose run --rm seed
 ```
 
 ## Cloud Run Deployment Outline
@@ -58,6 +111,10 @@ Prepare Google Cloud resources outside this repository:
 2. Create a Firestore database and a Cloud Storage bucket.
 3. Configure the Cloud Run service account with only the permissions required for Firestore, Storage, and Vertex AI.
 4. Deploy with placeholder values replaced in your shell or deployment system, not in committed files.
+
+Firebase web config is used by the client bundle, so `NEXT_PUBLIC_FIREBASE_*` values must be
+available during the Next.js build step. The GitHub Actions + Cloud Build path below passes them as
+Docker build args and runtime env values.
 
 Example shape:
 
@@ -79,6 +136,8 @@ only after `npm run lint`, `npm test`, and `npm run build` pass on `main`.
 The workflow keeps CI fast by using npm cache, one dependency install for the CI job, and a separate
 Cloud Build image build only on successful `main` pushes.
 
+Those npm scripts are CI commands. Local development remains Docker Compose only.
+
 Keep real project identifiers, service account emails, Workload Identity Provider names, and bucket
 names in GitHub repository variables, not in committed files.
 
@@ -88,6 +147,11 @@ Required GitHub repository variables:
 - `GCP_WORKLOAD_IDENTITY_PROVIDER`
 - `GCP_DEPLOY_SERVICE_ACCOUNT`
 - `GCS_BUCKET`
+- `FIREBASE_API_KEY`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_APP_ID`
+- `AUTH_ADMIN_EMAILS`
 
 Optional GitHub repository variables:
 
@@ -106,6 +170,10 @@ Expected trigger substitutions:
 - `_IMAGE_TAG`: Image tag, normally the GitHub commit SHA
 - `_GCS_BUCKET`: Cloud Storage bucket used by the running app
 - `_GOOGLE_CLOUD_LOCATION`: Vertex AI location, for example `global`
+- `_FIREBASE_API_KEY`, `_FIREBASE_AUTH_DOMAIN`, `_FIREBASE_PROJECT_ID`, `_FIREBASE_APP_ID`:
+  Firebase web app configuration
+- `_AUTH_ADMIN_EMAILS`: bootstrap admin email list. Prefer a single bootstrap email for automated
+  deploy substitutions; add more users through the invite UI.
 
 The GitHub Actions deploy service account needs permission to submit Cloud Build jobs.
 

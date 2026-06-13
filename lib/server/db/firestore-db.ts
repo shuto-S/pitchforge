@@ -1,7 +1,13 @@
 import type { ArtifactBundle } from "@/lib/schemas/artifact";
+import type { Invite, UserProfile } from "@/lib/schemas/auth";
+import { inviteSchema, projectSchema, userProfileSchema } from "@/lib/schemas";
 import type { Asset, Project, Run, RunEvent } from "@/lib/schemas/project";
 import { getRuntimeConfig } from "@/lib/server/config";
-import type { CreateProjectInput, PitchForgeRepository } from "@/lib/server/db/types";
+import type {
+  CreateProjectInput,
+  PitchForgeRepository,
+  UpsertUserInput
+} from "@/lib/server/db/types";
 import { nowIso } from "@/lib/server/utils/dates";
 import { makeId } from "@/lib/server/utils/ids";
 
@@ -20,6 +26,7 @@ type FirestoreDocumentReference = {
 };
 type FirestoreCollectionReference = {
   doc(id: string): FirestoreDocumentReference;
+  where(field: string, op: "==", value: unknown): FirestoreCollectionReference;
   orderBy(field: string, direction?: "asc" | "desc"): FirestoreCollectionReference;
   get(): Promise<FirestoreQuerySnapshot>;
 };
@@ -33,7 +40,7 @@ export class FirestorePitchForgeRepository implements PitchForgeRepository {
   async createProject(input: CreateProjectInput): Promise<Project> {
     const db = await this.db();
     const createdAt = nowIso();
-    const project: Project = {
+    const project: Project = projectSchema.parse({
       id: makeId("proj"),
       ...input,
       productUrl: input.productUrl || undefined,
@@ -41,7 +48,7 @@ export class FirestorePitchForgeRepository implements PitchForgeRepository {
       status: "ready",
       createdAt,
       updatedAt: createdAt
-    };
+    });
     await this.collection(db, "projects").doc(project.id).set(project);
     return project;
   }
@@ -63,10 +70,12 @@ export class FirestorePitchForgeRepository implements PitchForgeRepository {
     return snap.data() as Project;
   }
 
-  async listProjects(): Promise<Project[]> {
+  async listProjects(ownerUid: string): Promise<Project[]> {
     const db = await this.db();
-    const snap = await this.collection(db, "projects").orderBy("createdAt", "desc").get();
-    return snap.docs.map((doc: { data: () => FirestoreDoc }) => doc.data() as Project);
+    const snap = await this.collection(db, "projects").where("ownerUid", "==", ownerUid).get();
+    return snap.docs
+      .map((doc: { data: () => FirestoreDoc }) => projectSchema.parse(doc.data()))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async saveAsset(asset: Asset): Promise<Asset> {
@@ -192,6 +201,83 @@ export class FirestorePitchForgeRepository implements PitchForgeRepository {
     return snap.exists ? (snap.data() as ArtifactBundle) : null;
   }
 
+  async upsertUser(input: UpsertUserInput): Promise<UserProfile> {
+    const db = await this.db();
+    const ref = this.collection(db, "users").doc(input.uid);
+    const snap = await ref.get();
+    const existing = snap.exists ? (snap.data() as Partial<UserProfile>) : null;
+    const now = nowIso();
+    const user = userProfileSchema.parse({
+      ...existing,
+      ...input,
+      email: normalizeEmail(input.email),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      lastLoginAt: now
+    });
+    await ref.set(user);
+    return user;
+  }
+
+  async getUser(uid: string): Promise<UserProfile | null> {
+    const db = await this.db();
+    const snap = await this.collection(db, "users").doc(uid).get();
+    return snap.exists ? userProfileSchema.parse(snap.data()) : null;
+  }
+
+  async createInvite(email: string, invitedByUid: string): Promise<Invite> {
+    const db = await this.db();
+    const normalizedEmail = normalizeEmail(email);
+    const ref = this.collection(db, "invites").doc(inviteIdForEmail(normalizedEmail));
+    const snap = await ref.get();
+    const existing = snap.exists ? (snap.data() as Partial<Invite>) : null;
+    const now = nowIso();
+    const invite = inviteSchema.parse({
+      ...existing,
+      id: inviteIdForEmail(normalizedEmail),
+      email: normalizedEmail,
+      status: existing?.status ?? "invited",
+      invitedByUid: existing?.invitedByUid ?? invitedByUid,
+      acceptedByUid: existing?.acceptedByUid,
+      acceptedAt: existing?.acceptedAt,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    });
+    await ref.set(invite);
+    return invite;
+  }
+
+  async getInviteByEmail(email: string): Promise<Invite | null> {
+    const db = await this.db();
+    const snap = await this.collection(db, "invites").doc(inviteIdForEmail(email)).get();
+    return snap.exists ? inviteSchema.parse(snap.data()) : null;
+  }
+
+  async acceptInvite(email: string, acceptedByUid: string): Promise<Invite> {
+    const db = await this.db();
+    const ref = this.collection(db, "invites").doc(inviteIdForEmail(email));
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new Error("Invite not found");
+    }
+    const now = nowIso();
+    const invite = inviteSchema.parse({
+      ...snap.data(),
+      status: "accepted",
+      acceptedByUid,
+      acceptedAt: (snap.data() as Partial<Invite>).acceptedAt ?? now,
+      updatedAt: now
+    });
+    await ref.set(invite);
+    return invite;
+  }
+
+  async listInvites(): Promise<Invite[]> {
+    const db = await this.db();
+    const snap = await this.collection(db, "invites").orderBy("createdAt", "desc").get();
+    return snap.docs.map((doc: { data: () => FirestoreDoc }) => inviteSchema.parse(doc.data()));
+  }
+
   private async db(): Promise<FirestoreClient> {
     if (!this.dbPromise) {
       this.dbPromise = import("@google-cloud/firestore").then(({ Firestore }) => {
@@ -208,4 +294,12 @@ export class FirestorePitchForgeRepository implements PitchForgeRepository {
   private collection(db: FirestoreClient, name: string): FirestoreCollectionReference {
     return db.collection(name);
   }
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function inviteIdForEmail(email: string): string {
+  return encodeURIComponent(normalizeEmail(email));
 }

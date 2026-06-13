@@ -13,6 +13,8 @@ describe("orchestrator", () => {
     const repo = new LocalPitchForgeRepository(localDir);
     const storage = new LocalObjectStorage(localDir);
     const project = await repo.createProject({
+      ownerUid: "test-user",
+      ownerEmail: "test-user@example.test",
       title: "PitchForge",
       oneLiner: "AI監督が提出物を磨く",
       description:

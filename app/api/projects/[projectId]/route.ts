@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
+import { requireProjectOwner } from "@/lib/server/auth";
 import { getRepository } from "@/lib/server/db";
-import { jsonError, notFound } from "@/lib/server/http";
+import { jsonError } from "@/lib/server/http";
 
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const { projectId } = await params;
     const repo = getRepository();
-    const project = await repo.getProject(projectId);
-    if (!project) {
-      return notFound("Project not found");
-    }
+    const { project } = await requireProjectOwner(request, projectId, repo);
     const [assets, runs] = await Promise.all([
       repo.listAssets(projectId),
       repo.listRuns(projectId)

@@ -3,14 +3,22 @@ import path from "node:path";
 import {
   artifactBundleSchema,
   assetSchema,
+  inviteSchema,
   projectSchema,
   runEventSchema,
-  runSchema
+  runSchema,
+  userProfileSchema
 } from "@/lib/schemas";
 import type { ArtifactBundle } from "@/lib/schemas/artifact";
+import type { Invite, UserProfile } from "@/lib/schemas/auth";
 import type { Asset, Project, Run, RunEvent } from "@/lib/schemas/project";
 import { getRuntimeConfig } from "@/lib/server/config";
-import type { CreateProjectInput, LocalDbShape, PitchForgeRepository } from "@/lib/server/db/types";
+import type {
+  CreateProjectInput,
+  LocalDbShape,
+  PitchForgeRepository,
+  UpsertUserInput
+} from "@/lib/server/db/types";
 import { nowIso } from "@/lib/server/utils/dates";
 import { makeId } from "@/lib/server/utils/ids";
 
@@ -19,11 +27,21 @@ const emptyDb = (): LocalDbShape => ({
   assets: {},
   runs: {},
   events: {},
-  artifacts: {}
+  artifacts: {},
+  users: {},
+  invites: {}
 });
 
 function runKey(projectId: string, runId: string): string {
   return `${projectId}:${runId}`;
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function inviteIdForEmail(email: string): string {
+  return encodeURIComponent(normalizeEmail(email));
 }
 
 export class LocalPitchForgeRepository implements PitchForgeRepository {
@@ -77,9 +95,12 @@ export class LocalPitchForgeRepository implements PitchForgeRepository {
     });
   }
 
-  async listProjects(): Promise<Project[]> {
+  async listProjects(ownerUid: string): Promise<Project[]> {
     const db = await this.read();
-    return Object.values(db.projects).map((project) => projectSchema.parse(project));
+    return Object.values(db.projects)
+      .filter((project) => project.ownerUid === ownerUid)
+      .map((project) => projectSchema.parse(project))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async saveAsset(asset: Asset): Promise<Asset> {
@@ -177,6 +198,84 @@ export class LocalPitchForgeRepository implements PitchForgeRepository {
     return artifacts ? artifactBundleSchema.parse(artifacts) : null;
   }
 
+  async upsertUser(input: UpsertUserInput): Promise<UserProfile> {
+    return this.mutate((db) => {
+      const existing = db.users[input.uid];
+      const now = nowIso();
+      const user = userProfileSchema.parse({
+        ...existing,
+        ...input,
+        email: normalizeEmail(input.email),
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+        lastLoginAt: now
+      });
+      db.users[user.uid] = user;
+      return user;
+    });
+  }
+
+  async getUser(uid: string): Promise<UserProfile | null> {
+    const db = await this.read();
+    const user = db.users[uid];
+    return user ? userProfileSchema.parse(user) : null;
+  }
+
+  async createInvite(email: string, invitedByUid: string): Promise<Invite> {
+    return this.mutate((db) => {
+      const normalizedEmail = normalizeEmail(email);
+      const id = inviteIdForEmail(normalizedEmail);
+      const existing = db.invites[id];
+      const now = nowIso();
+      const invite = inviteSchema.parse({
+        ...existing,
+        id,
+        email: normalizedEmail,
+        status: existing?.status ?? "invited",
+        invitedByUid: existing?.invitedByUid ?? invitedByUid,
+        acceptedByUid: existing?.acceptedByUid,
+        acceptedAt: existing?.acceptedAt,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now
+      });
+      db.invites[id] = invite;
+      return invite;
+    });
+  }
+
+  async getInviteByEmail(email: string): Promise<Invite | null> {
+    const db = await this.read();
+    const invite = db.invites[inviteIdForEmail(email)];
+    return invite ? inviteSchema.parse(invite) : null;
+  }
+
+  async acceptInvite(email: string, acceptedByUid: string): Promise<Invite> {
+    return this.mutate((db) => {
+      const id = inviteIdForEmail(email);
+      const existing = db.invites[id];
+      if (!existing) {
+        throw new Error("Invite not found");
+      }
+      const now = nowIso();
+      const invite = inviteSchema.parse({
+        ...existing,
+        status: "accepted",
+        acceptedByUid,
+        acceptedAt: existing.acceptedAt ?? now,
+        updatedAt: now
+      });
+      db.invites[id] = invite;
+      return invite;
+    });
+  }
+
+  async listInvites(): Promise<Invite[]> {
+    const db = await this.read();
+    return Object.values(db.invites)
+      .map((invite) => inviteSchema.parse(invite))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   private async read(): Promise<LocalDbShape> {
     await mkdir(path.dirname(this.filePath), { recursive: true });
     try {
@@ -189,7 +288,9 @@ export class LocalPitchForgeRepository implements PitchForgeRepository {
         assets: parsed.assets ?? {},
         runs: parsed.runs ?? {},
         events: parsed.events ?? {},
-        artifacts: parsed.artifacts ?? {}
+        artifacts: parsed.artifacts ?? {},
+        users: parsed.users ?? {},
+        invites: parsed.invites ?? {}
       };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {

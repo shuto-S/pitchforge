@@ -29,6 +29,8 @@ describe("markdown export", () => {
     const markdown = renderMarkdownExport({
       project: {
         id: "proj_test",
+        ownerUid: "test-user",
+        ownerEmail: "test-user@example.test",
         title: "PitchForge",
         oneLiner: "AI監督",
         description: "description",

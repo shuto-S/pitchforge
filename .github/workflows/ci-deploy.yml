@@ -52,6 +52,11 @@ jobs:
       github.ref == 'refs/heads/main' &&
       vars.GCP_PROJECT_ID != '' &&
       vars.GCS_BUCKET != '' &&
+      vars.FIREBASE_API_KEY != '' &&
+      vars.FIREBASE_AUTH_DOMAIN != '' &&
+      vars.FIREBASE_PROJECT_ID != '' &&
+      vars.FIREBASE_APP_ID != '' &&
+      vars.AUTH_ADMIN_EMAILS != '' &&
       vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
       vars.GCP_DEPLOY_SERVICE_ACCOUNT != ''
     runs-on: ubuntu-latest
@@ -66,6 +71,11 @@ jobs:
       AR_REPOSITORY: ${{ vars.AR_REPOSITORY || 'pitchforge' }}
       GCS_BUCKET: ${{ vars.GCS_BUCKET }}
       GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION || 'global' }}
+      FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+      FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+      AUTH_ADMIN_EMAILS: ${{ vars.AUTH_ADMIN_EMAILS }}
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
@@ -78,6 +88,11 @@ jobs:
           required=(
             GCP_PROJECT_ID
             GCS_BUCKET
+            FIREBASE_API_KEY
+            FIREBASE_AUTH_DOMAIN
+            FIREBASE_PROJECT_ID
+            FIREBASE_APP_ID
+            AUTH_ADMIN_EMAILS
             GCP_WORKLOAD_IDENTITY_PROVIDER
             GCP_DEPLOY_SERVICE_ACCOUNT
           )
@@ -102,4 +117,4 @@ jobs:
           gcloud builds submit . \
             --project="${GCP_PROJECT_ID}" \
             --config=cloudbuild.yaml \
-            --substitutions="_REGION=${GCP_REGION},_SERVICE=${CLOUD_RUN_SERVICE},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_TAG=${GITHUB_SHA},_GCS_BUCKET=${GCS_BUCKET},_GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION}"
+            --substitutions="_REGION=${GCP_REGION},_SERVICE=${CLOUD_RUN_SERVICE},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_TAG=${GITHUB_SHA},_GCS_BUCKET=${GCS_BUCKET},_GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},_FIREBASE_API_KEY=${FIREBASE_API_KEY},_FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN},_FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID},_FIREBASE_APP_ID=${FIREBASE_APP_ID},_AUTH_ADMIN_EMAILS=${AUTH_ADMIN_EMAILS}"

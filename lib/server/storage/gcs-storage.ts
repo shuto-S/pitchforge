@@ -26,6 +26,10 @@ function safeFileName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
 }
 
+function safePathSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+}
+
 export class GcsObjectStorage implements ObjectStorage {
   private storagePromise: Promise<GcsClient> | null = null;
 
@@ -37,9 +41,9 @@ export class GcsObjectStorage implements ObjectStorage {
 
     const storage = await this.storage();
     const id = makeId("asset");
-    const objectName = `projects/${input.projectId}/screenshots/${id}_${safeFileName(
-      input.fileName
-    )}`;
+    const objectName = `users/${safePathSegment(input.ownerUid)}/projects/${
+      input.projectId
+    }/screenshots/${id}_${safeFileName(input.fileName)}`;
     const bucket = storage.bucket(config.gcsBucket);
     const file = bucket.file(objectName);
     await file.save(input.bytes, {
@@ -53,6 +57,7 @@ export class GcsObjectStorage implements ObjectStorage {
     return {
       id,
       projectId: input.projectId,
+      ownerUid: input.ownerUid,
       kind: "screenshot",
       fileName: input.fileName,
       mimeType: input.mimeType,
