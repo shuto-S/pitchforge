@@ -138,6 +138,11 @@ only after `npm run lint`, `npm test`, and `npm run build` pass on `main`.
 The workflow keeps CI fast by using npm cache, one dependency install for the CI job, and a separate
 Cloud Build image build only on successful `main` pushes.
 
+The deploy job submits the public GitHub repository URL plus the pushed commit SHA to Cloud Build,
+rather than uploading the GitHub runner's local working tree to a Cloud Storage staging bucket. If
+the repository becomes private, replace this with a Cloud Build repository connection or another
+private-source mechanism.
+
 Those npm scripts are CI commands. Local development remains Docker Compose only.
 
 Keep real project identifiers, service account emails, Workload Identity Provider names, and bucket
@@ -179,10 +184,12 @@ Expected trigger substitutions:
   deploy substitutions; add more users through the invite UI.
 - `_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT`: runtime service account used by Cloud Run.
 
-The GitHub Actions deploy service account needs permission to submit Cloud Build jobs.
+The GitHub Actions deploy service account needs permission to submit Cloud Build jobs, use the
+quota project, and act as the Cloud Build execution service account.
 
 Cloud Build's service account needs permissions to:
 
+- resolve the Identity Platform API key string by key resource name
 - build and push images to Artifact Registry
 - deploy and update the Cloud Run service
 - act as the Cloud Run runtime service account
