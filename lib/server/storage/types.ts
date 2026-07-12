@@ -9,6 +9,8 @@ export type UploadObjectInput = {
 };
 
 export interface ObjectStorage {
+  checkReadiness?(): Promise<void>;
   saveScreenshot(input: UploadObjectInput): Promise<Asset>;
+  deleteAsset?(asset: Asset): Promise<void>;
   readAsset(asset: Asset): Promise<Buffer | null>;
 }

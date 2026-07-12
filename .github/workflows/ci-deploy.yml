@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: ci-deploy-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -21,6 +21,24 @@ jobs:
     name: lint / test / build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: pitchforge
+          POSTGRES_USER: pitchforge
+          POSTGRES_PASSWORD: pitchforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pitchforge -d pitchforge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_MODE: postgres
+      DATABASE_URL: postgres://pitchforge:pitchforge@localhost:5432/pitchforge
+      STORAGE_MODE: gcs
 
     steps:
       - name: Checkout
@@ -47,18 +65,7 @@ jobs:
   deploy:
     name: deploy to Cloud Run
     needs: ci
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      vars.GCP_PROJECT_ID != '' &&
-      vars.GCS_BUCKET != '' &&
-      vars.IDENTITY_PLATFORM_API_KEY_NAME != '' &&
-      vars.IDENTITY_PLATFORM_AUTH_DOMAIN != '' &&
-      vars.IDENTITY_PLATFORM_PROJECT_ID != '' &&
-      vars.AUTH_ADMIN_EMAILS != '' &&
-      vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT != '' &&
-      vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
-      vars.GCP_DEPLOY_SERVICE_ACCOUNT != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -70,11 +77,10 @@ jobs:
       CLOUD_RUN_SERVICE: ${{ vars.CLOUD_RUN_SERVICE || 'pitchforge' }}
       AR_REPOSITORY: ${{ vars.AR_REPOSITORY || 'pitchforge' }}
       GCS_BUCKET: ${{ vars.GCS_BUCKET }}
+      DATABASE_URL_SECRET: ${{ vars.DATABASE_URL_SECRET }}
+      AUTH_SESSION_SECRET: ${{ vars.AUTH_SESSION_SECRET }}
+      CLOUD_SQL_INSTANCE_CONNECTION_NAME: ${{ vars.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}
       GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION || 'global' }}
-      IDENTITY_PLATFORM_API_KEY_NAME: ${{ vars.IDENTITY_PLATFORM_API_KEY_NAME }}
-      IDENTITY_PLATFORM_AUTH_DOMAIN: ${{ vars.IDENTITY_PLATFORM_AUTH_DOMAIN }}
-      IDENTITY_PLATFORM_PROJECT_ID: ${{ vars.IDENTITY_PLATFORM_PROJECT_ID }}
-      AUTH_ADMIN_EMAILS: ${{ vars.AUTH_ADMIN_EMAILS }}
       CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT }}
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
@@ -85,23 +91,28 @@ jobs:
 
       - name: Validate deploy variables
         run: |
+          set -euo pipefail
+
           required=(
             GCP_PROJECT_ID
             GCS_BUCKET
-            IDENTITY_PLATFORM_API_KEY_NAME
-            IDENTITY_PLATFORM_AUTH_DOMAIN
-            IDENTITY_PLATFORM_PROJECT_ID
-            AUTH_ADMIN_EMAILS
+            DATABASE_URL_SECRET
+            AUTH_SESSION_SECRET
+            CLOUD_SQL_INSTANCE_CONNECTION_NAME
             CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT
             GCP_WORKLOAD_IDENTITY_PROVIDER
             GCP_DEPLOY_SERVICE_ACCOUNT
           )
+          missing=0
           for name in "${required[@]}"; do
-            if [ -z "${!name}" ]; then
+            if [[ -z "${!name:-}" ]]; then
               echo "::error::Missing GitHub repository variable: ${name}"
-              exit 1
+              missing=1
             fi
           done
+          if (( missing != 0 )); then
+            exit 1
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -114,8 +125,80 @@ jobs:
 
       - name: Build and deploy with Cloud Build
         run: |
+          set -euo pipefail
+
           gcloud builds submit "https://github.com/${GITHUB_REPOSITORY}.git" \
             --project="${GCP_PROJECT_ID}" \
             --config=cloudbuild.yaml \
             --git-source-revision="${GITHUB_SHA}" \
-            --substitutions="_REGION=${GCP_REGION},_SERVICE=${CLOUD_RUN_SERVICE},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_TAG=${GITHUB_SHA},_GCS_BUCKET=${GCS_BUCKET},_GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},_IDENTITY_PLATFORM_API_KEY_NAME=${IDENTITY_PLATFORM_API_KEY_NAME},_IDENTITY_PLATFORM_AUTH_DOMAIN=${IDENTITY_PLATFORM_AUTH_DOMAIN},_IDENTITY_PLATFORM_PROJECT_ID=${IDENTITY_PLATFORM_PROJECT_ID},_AUTH_ADMIN_EMAILS=${AUTH_ADMIN_EMAILS},_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}"
+            --substitutions="_REGION=${GCP_REGION},_SERVICE=${CLOUD_RUN_SERVICE},_AR_REPOSITORY=${AR_REPOSITORY},_IMAGE_TAG=${GITHUB_SHA},_GCS_BUCKET=${GCS_BUCKET},_DATABASE_URL_SECRET=${DATABASE_URL_SECRET},_AUTH_SESSION_SECRET=${AUTH_SESSION_SECRET},_CLOUD_SQL_INSTANCE_CONNECTION_NAME=${CLOUD_SQL_INSTANCE_CONNECTION_NAME},_GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},_CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SERVICE_ACCOUNT}"
+
+      - name: Smoke test deployed Cloud Run status and readiness
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+
+          service_url="$(
+            gcloud run services describe "${CLOUD_RUN_SERVICE}" \
+              --project="${GCP_PROJECT_ID}" \
+              --region="${GCP_REGION}" \
+              --platform=managed \
+              --format='value(status.url)'
+          )"
+          if [[ -z "${service_url}" ]]; then
+            echo "::error::Cloud Run service URL was not returned after deployment"
+            exit 1
+          fi
+
+          status_file="$(mktemp)"
+          readiness_file="$(mktemp)"
+          trap 'rm -f "${status_file}" "${readiness_file}"' EXIT
+          curl \
+            --silent \
+            --show-error \
+            --fail \
+            --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-max-time 90 \
+            --retry-all-errors \
+            --output "${status_file}" \
+            "${service_url%/}/api/system/status"
+
+          if ! jq -e '
+            .runtimeMode == "cloud-run" and
+            .aiMode == "vertex-gemini" and
+            .datastoreMode == "postgres" and
+            .storageMode == "gcs" and
+            .authMode == "password"
+          ' "${status_file}" >/dev/null 2>&1; then
+            echo "::error::Cloud Run status did not report the expected production modes"
+            exit 1
+          fi
+
+          curl \
+            --silent \
+            --show-error \
+            --fail \
+            --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --retry 5 \
+            --retry-delay 5 \
+            --retry-max-time 90 \
+            --retry-all-errors \
+            --output "${readiness_file}" \
+            "${service_url%/}/api/system/readiness"
+
+          if ! jq -e '
+            .ready == true and
+            .checks.database == "ok" and
+            .checks.storage == "ok"
+          ' "${readiness_file}" >/dev/null 2>&1; then
+            echo "::error::Cloud Run readiness checks did not pass"
+            exit 1
+          fi
+
+          echo "Cloud Run status and readiness smoke tests passed"

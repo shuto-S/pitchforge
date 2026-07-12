@@ -1,6 +1,7 @@
-export type DatastoreMode = "local" | "firestore";
-export type StorageMode = "local" | "gcs";
+export type DatabaseMode = "postgres";
+export type StorageMode = "gcs";
 export type AiProviderMode = "auto" | "mock" | "gemini";
+export type AuthMode = "identity-platform" | "local" | "password";
 
 function readMode<T extends string>(
   value: string | undefined,
@@ -22,26 +23,36 @@ export function getRuntimeConfig() {
       ["auto", "mock", "gemini"],
       "auto"
     ),
-    geminiModel: process.env.GEMINI_MODEL ?? "gemini-flash-latest",
+    geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
     useVertex,
     hasGeminiApiKey: hasApiKey,
     googleCloudProject: process.env.GOOGLE_CLOUD_PROJECT,
     googleCloudLocation: process.env.GOOGLE_CLOUD_LOCATION ?? "global",
-    datastoreMode: readMode<DatastoreMode>(
-      process.env.DATASTORE_MODE,
-      ["local", "firestore"],
-      "local"
+    databaseMode: readMode<DatabaseMode>(
+      process.env.DATABASE_MODE,
+      ["postgres"],
+      "postgres"
     ),
     storageMode: readMode<StorageMode>(
       process.env.STORAGE_MODE,
-      ["local", "gcs"],
-      "local"
+      ["gcs"],
+      "gcs"
     ),
-    firestoreDatabaseId: process.env.FIRESTORE_DATABASE_ID ?? "(default)",
+    databaseUrl: process.env.DATABASE_URL,
     gcsBucket: process.env.GCS_BUCKET,
-    localDataDir: process.env.LOCAL_DATA_DIR ?? ".local-data",
+    gcsApiEndpoint: process.env.GCS_API_ENDPOINT,
     sessionCookieName: process.env.SESSION_COOKIE_NAME ?? "__session",
+    authMode: readMode<AuthMode>(
+      process.env.AUTH_MODE,
+      ["identity-platform", "local", "password"],
+      "password"
+    ),
+    authSessionSecret: process.env.AUTH_SESSION_SECRET ?? "",
     authAdminEmails: process.env.AUTH_ADMIN_EMAILS ?? "",
+    localAuthUid: process.env.LOCAL_AUTH_UID ?? "local-user",
+    localAuthEmail: process.env.LOCAL_AUTH_EMAIL ?? "local-user@example.test",
+    localAuthDisplayName: process.env.LOCAL_AUTH_DISPLAY_NAME ?? "Local User",
+    localAuthSecret: process.env.LOCAL_AUTH_SECRET ?? "local-development-secret",
     authBypassForTest:
       process.env.AUTH_BYPASS_FOR_TEST === "true" && process.env.NODE_ENV !== "production",
     isCloudRun: Boolean(process.env.K_SERVICE)
@@ -61,9 +72,9 @@ export function getPublicRuntimeStatus() {
   return {
     runtimeMode: config.isCloudRun ? "cloud-run" : "local",
     aiMode: resolvedAiMode,
-    datastoreMode: config.datastoreMode,
+    datastoreMode: config.databaseMode,
     storageMode: config.storageMode,
-    authMode: config.authBypassForTest ? "test-bypass" : "identity-platform",
+    authMode: config.authBypassForTest ? "test-bypass" : config.authMode,
     cloudRunService: process.env.K_SERVICE ? "configured" : "not-configured",
     googleCloudProject: config.googleCloudProject ? "configured" : "not-configured",
     gcsBucket: config.gcsBucket ? "configured" : "not-configured"

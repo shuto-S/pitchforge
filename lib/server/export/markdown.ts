@@ -1,9 +1,82 @@
 import type { ArtifactBundle } from "@/lib/schemas/artifact";
 import type { JudgeScore } from "@/lib/schemas/agent";
 import type { Project } from "@/lib/schemas/project";
+import {
+  HIDDEN_EXTERNAL_URL_TEXT,
+  redactCredentialBearingHttpUrls,
+  safeExternalHttpUrl
+} from "@/lib/safe-external-url";
 
 function tableEscape(value: string): string {
-  return value.replaceAll("|", "\\|").replaceAll("\n", " ");
+  return markdownTextEscape(value).replaceAll("\n", " ");
+}
+
+function markdownTextEscape(value: string): string {
+  const escaped = redactCredentialBearingHttpUrls(value)
+    .replace(/\r\n?/gu, "\n")
+    .replace(/([\\`*_[\]<>#!|~])/gu, "\\$1");
+
+  return escaped
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^(?: {4,}|\t+)/u, "")
+        .replace(/^(\s{0,3})([-+=])/u, (_match, space, marker) => {
+          return `${space}\\${marker}`;
+        })
+        .replace(/^(\s{0,3})(\d{1,9})([.)])(?=\s)/u, (_match, space, number, marker) => {
+          return `${space}${number}\\${marker}`;
+        })
+    )
+    .join("\n");
+}
+
+function renderProjectUrl(value: string | undefined): string {
+  if (!value) {
+    return "未設定";
+  }
+  return safeExternalHttpUrl(value) ?? HIDDEN_EXTERNAL_URL_TEXT;
+}
+
+function renderBulletList(values: readonly string[], emptyLabel = "未設定"): string {
+  if (values.length === 0) {
+    return `- ${emptyLabel}`;
+  }
+  return values.map((value) => `- ${markdownTextEscape(value)}`).join("\n");
+}
+
+function renderRelatedUrls(
+  relatedUrls: ArtifactBundle["protoPediaContent"]["relatedUrls"]
+): string {
+  if (relatedUrls.length === 0) {
+    return "- 未設定";
+  }
+
+  return relatedUrls
+    .map((relatedUrl) => {
+      const label = markdownTextEscape(relatedUrl.label);
+      const safeUrl = safeExternalHttpUrl(relatedUrl.url);
+      if (safeUrl) {
+        return `- ${label}: <${safeUrl}>`;
+      }
+      return `- ${label}: ${HIDDEN_EXTERNAL_URL_TEXT}（安全基準外のためリンク無効）`;
+    })
+    .join("\n");
+}
+
+function renderChecklistItem(
+  item: ArtifactBundle["checklist"]["requiredItems"][number]
+): string {
+  const checked = item.status === "ready" ? "x" : " ";
+  const status =
+    item.status === "ready"
+      ? "ready / システム判定の準備済み（外部状態は要確認）"
+      : item.status === "missing"
+        ? "missing / 不足"
+        : "needs_review / 要確認";
+  return `- [${checked}] ${markdownTextEscape(item.label)}: ${markdownTextEscape(
+    item.note
+  )} （状態: ${status}）`;
 }
 
 function renderScoreTable(before: JudgeScore, after: JudgeScore): string {
@@ -12,7 +85,7 @@ function renderScoreTable(before: JudgeScore, after: JudgeScore): string {
     const final = afterByKey.get(category.key);
     return `| ${tableEscape(category.label)} | ${category.score} | ${final?.score ?? "-"} |`;
   });
-  return ["| Category | Before | After |", "|---|---:|---:|", ...rows].join("\n");
+  return ["| 評価項目 | 改善前 | 改善後 |", "|---|---:|---:|", ...rows].join("\n");
 }
 
 export function renderMarkdownExport(input: {
@@ -24,38 +97,38 @@ export function renderMarkdownExport(input: {
   const { project, baselineScore, finalScore, artifacts } = input;
   const script90 = artifacts.demoScripts.script90s;
 
-  return `# PitchForge Output
+  return `# ${markdownTextEscape(project.title)} プロダクト評価・改善レポート
 
-## Project
+## プロダクト概要
 
-- Title: ${project.title}
-- One-liner: ${project.oneLiner}
-- Product URL: ${project.productUrl ?? "TBD"}
-- GitHub URL: ${project.githubUrl ?? "TBD"}
+- プロダクト名: ${markdownTextEscape(project.title)}
+- 一言説明: ${markdownTextEscape(project.oneLiner)}
+- プロダクトURL: ${renderProjectUrl(project.productUrl)}
+- GitHub URL: ${renderProjectUrl(project.githubUrl)}
 
-## Before / After Score
+## 改善前後の評価スコア
 
-- Total: ${baselineScore.totalScore} -> ${finalScore.totalScore}
+- 総合スコア: ${baselineScore.totalScore} -> ${finalScore.totalScore}
 
 ${renderScoreTable(baselineScore, finalScore)}
 
-## Director Strategy
+## 改善方針
 
-### Core Message
+### コアメッセージ
 
-${artifacts.directorStrategy.coreMessage}
+${markdownTextEscape(artifacts.directorStrategy.coreMessage)}
 
-### Opening Hook
+### 冒頭フック
 
-${artifacts.directorStrategy.openingHook}
+${markdownTextEscape(artifacts.directorStrategy.openingHook)}
 
-### GCP Story
+### Google Cloudの価値
 
-${artifacts.directorStrategy.gcpStory}
+${markdownTextEscape(artifacts.directorStrategy.gcpStory)}
 
-## 90-second Demo Script
+## 90秒デモ台本
 
-| Time | Visual | Narration | On-screen Text |
+| 時間 | 画面 | ナレーション | 画面テキスト |
 |---|---|---|---|
 ${script90.scenes
   .map(
@@ -66,47 +139,75 @@ ${script90.scenes
   )
   .join("\n")}
 
-## Proto Pedia Content
+## 紹介ページ
 
-### Overview
+### タイトル
 
-${artifacts.protoPediaContent.overview}
+${markdownTextEscape(artifacts.protoPediaContent.title)}
 
-### Story
+### 概要
 
-#### Problem and Background
+${markdownTextEscape(artifacts.protoPediaContent.overview)}
 
-${artifacts.protoPediaContent.story.problemBackground}
+### ストーリー
 
-#### Target Users
+#### 課題と背景
 
-${artifacts.protoPediaContent.story.targetUsers}
+${markdownTextEscape(artifacts.protoPediaContent.story.problemBackground)}
 
-#### Product Features
+#### 想定ユーザー
 
-${artifacts.protoPediaContent.story.productFeatures}
+${markdownTextEscape(artifacts.protoPediaContent.story.targetUsers)}
 
-## System Architecture
+#### 主な機能
 
-${artifacts.protoPediaContent.systemArchitecture}
+${markdownTextEscape(artifacts.protoPediaContent.story.productFeatures)}
 
-## Thumbnail Ideas
+## システム構成
+
+${markdownTextEscape(artifacts.protoPediaContent.systemArchitecture)}
+
+### 構成図
+
+ワークスペースから構成図をPNGまたはSVGで保存し、審査・レビュー資料や公開ページに利用できます。
+
+## 開発素材・使用技術
+
+${renderBulletList(artifacts.protoPediaContent.developmentMaterials)}
+
+## タグ
+
+${renderBulletList(artifacts.protoPediaContent.tags)}
+
+## 関連URL
+
+${renderRelatedUrls(artifacts.protoPediaContent.relatedUrls)}
+
+## サムネイル案
 
 ${artifacts.visualConcepts.thumbnailIdeas
   .map(
     (idea) =>
-      `### ${idea.title}\n\n- Concept: ${idea.concept}\n- Layout: ${idea.layout}\n- Copy: ${idea.copy}\n- Prompt: ${idea.imagePrompt}`
+      `### ${markdownTextEscape(idea.title)}\n\n- コンセプト: ${markdownTextEscape(
+        idea.concept
+      )}\n- レイアウト: ${markdownTextEscape(idea.layout)}\n- コピー: ${markdownTextEscape(
+        idea.copy
+      )}\n- 画像生成プロンプト: ${markdownTextEscape(idea.imagePrompt)}`
   )
   .join("\n\n")}
 
-## Submission Checklist
+## 公開準備チェック
 
-${artifacts.checklist.requiredItems
-  .map((item) => `- [${item.status === "ready" ? "x" : " "}] ${item.label}: ${item.note}`)
-  .join("\n")}
+readyは現在の入力と生成物に基づくシステム判定です。公開URLなどアプリ外の状態は、公開や共有の前に人が再確認してください。
 
-## Final Advice
+${artifacts.checklist.requiredItems.map(renderChecklistItem).join("\n")}
 
-${artifacts.checklist.finalSubmissionAdvice}
+## 推奨修正
+
+${renderBulletList(artifacts.checklist.recommendedFixes, "なし")}
+
+## 次のアクション
+
+${markdownTextEscape(artifacts.checklist.finalSubmissionAdvice)}
 `;
 }

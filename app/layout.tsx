@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "PitchForge",
   description:
-    "AI director studio for turning rough hackathon prototypes into judge-ready submissions."
+    "プロダクトを5つの観点で評価し、改善から審査・レビュー向け資料作成まで支えるAIワークスペース。"
 };
 
 export default function RootLayout({

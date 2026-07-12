@@ -1,12 +1,24 @@
 import { getRuntimeConfig } from "@/lib/server/config";
-import { FirestorePitchForgeRepository } from "@/lib/server/db/firestore-db";
-import { LocalPitchForgeRepository } from "@/lib/server/db/local-db";
+import { PostgresPitchForgeRepository } from "@/lib/server/db/postgres-db";
 import type { PitchForgeRepository } from "@/lib/server/db/types";
+
+let cachedRepository:
+  | {
+      databaseUrl: string;
+      repository: PitchForgeRepository;
+    }
+  | null = null;
 
 export function getRepository(): PitchForgeRepository {
   const config = getRuntimeConfig();
-  if (config.datastoreMode === "firestore") {
-    return new FirestorePitchForgeRepository();
+  if (!config.databaseUrl) {
+    throw new Error("DATABASE_URL is required");
   }
-  return new LocalPitchForgeRepository(config.localDataDir);
+  if (cachedRepository?.databaseUrl !== config.databaseUrl) {
+    cachedRepository = {
+      databaseUrl: config.databaseUrl,
+      repository: new PostgresPitchForgeRepository(config.databaseUrl)
+    };
+  }
+  return cachedRepository.repository;
 }

@@ -111,7 +111,7 @@ export function InviteManager() {
       >
         <h2 className="text-xl font-semibold">新しい招待</h2>
         <p className="mt-2 text-sm leading-6 text-muted">
-          利用を許可するメールアドレスを追加します。
+          Googleログイン後に利用を許可するメールアドレスを追加します。
         </p>
         <label className="mt-5 block">
           <span className="text-sm font-semibold">メールアドレス</span>
@@ -172,7 +172,7 @@ export function InviteManager() {
           </ul>
         ) : (
           <div className="py-8 text-sm leading-6 text-muted">
-            まだ招待はありません。左のフォームから最初のユーザーを追加してください。
+            まだ招待はありません。最初の利用者を追加すると、そのユーザーだけがワークスペースに入れます。
           </div>
         )}
       </section>

@@ -9,6 +9,10 @@ export type GenerateJsonParams = {
   schemaName: string;
   schema: unknown;
   images?: AIImageInput[];
+  maxAttempts?: number;
+  maxOutputTokens?: number;
+  temperature?: number;
+  thinkingBudget?: number;
 };
 
 export interface AIProvider {

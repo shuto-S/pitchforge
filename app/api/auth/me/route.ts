@@ -7,8 +7,12 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     const user = await requireUser(request);
-    return NextResponse.json({ user });
+    const response = NextResponse.json({ user });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
-    return jsonError(error);
+    const response = jsonError(error);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

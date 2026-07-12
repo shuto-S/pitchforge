@@ -3,25 +3,62 @@ name: pitchforge
 x-app-environment: &app-environment
   NEXT_PUBLIC_APP_NAME: PitchForge
   NEXT_PUBLIC_DEMO_MODE: "true"
-  AI_PROVIDER: mock
-  GEMINI_MODEL: gemini-flash-latest
+  NEXT_PUBLIC_AUTH_MODE: local
+  AUTH_MODE: local
+  AI_PROVIDER: gemini
+  GEMINI_MODEL: gemini-2.5-flash
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   GOOGLE_GENAI_USE_VERTEXAI: "false"
-  DATASTORE_MODE: local
-  STORAGE_MODE: local
-  LOCAL_DATA_DIR: .local-data
-  AUTH_BYPASS_FOR_TEST: "true"
-  AUTH_BYPASS_UID: local-user
-  AUTH_BYPASS_EMAIL: local-user@example.test
+  GOOGLE_CLOUD_PROJECT: local-pitchforge
+  DATABASE_MODE: postgres
+  DATABASE_URL: postgres://pitchforge:pitchforge@db:5432/pitchforge
+  STORAGE_MODE: gcs
+  GCS_API_ENDPOINT: http://gcs:4443
+  GCS_BUCKET: pitchforge-local
+  AUTH_BYPASS_FOR_TEST: "false"
+  LOCAL_AUTH_UID: local-user
+  LOCAL_AUTH_EMAIL: local-user@example.test
+  LOCAL_AUTH_DISPLAY_NAME: Local User
+  LOCAL_AUTH_SECRET: local-development-secret
   SESSION_COOKIE_NAME: __session
   NEXT_TELEMETRY_DISABLED: "1"
   WATCHPACK_POLLING: "true"
 
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pitchforge
+      POSTGRES_USER: pitchforge
+      POSTGRES_PASSWORD: pitchforge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pitchforge -d pitchforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  gcs:
+    image: fsouza/fake-gcs-server:latest
+    command: ["-scheme", "http", "-port", "4443", "-public-host", "gcs:4443"]
+    ports:
+      - "4443:4443"
+    volumes:
+      - gcs_data:/data
+
   web:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: npm run dev -- --hostname 0.0.0.0 --port 3000
+    command: sh -c "npm run db:migrate && npm run dev -- --hostname 0.0.0.0 --port 3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      gcs:
+        condition: service_started
     environment:
       <<: *app-environment
     ports:
@@ -30,7 +67,6 @@ services:
       - .:/app
       - node_modules:/app/node_modules
       - next_cache:/app/.next
-      - local_data:/app/.local-data
 
   lint:
     profiles: ["tools"]
@@ -44,21 +80,24 @@ services:
       - .:/app
       - node_modules:/app/node_modules
       - next_cache:/app/.next
-      - local_data:/app/.local-data
 
   test:
     profiles: ["tools"]
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: npm test
+    command: sh -c "npm run db:migrate && npm test"
+    depends_on:
+      db:
+        condition: service_healthy
+      gcs:
+        condition: service_started
     environment:
       <<: *app-environment
     volumes:
       - .:/app
       - node_modules:/app/node_modules
       - next_cache:/app/.next
-      - local_data:/app/.local-data
 
   build:
     profiles: ["tools"]
@@ -72,24 +111,43 @@ services:
       - .:/app
       - node_modules:/app/node_modules
       - build_next_cache:/app/.next
-      - local_data:/app/.local-data
 
   seed:
     profiles: ["tools"]
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: npm run seed:demo
+    command: sh -c "npm run db:migrate && npm run seed:demo"
+    depends_on:
+      db:
+        condition: service_healthy
+      gcs:
+        condition: service_started
     environment:
       <<: *app-environment
     volumes:
       - .:/app
       - node_modules:/app/node_modules
       - next_cache:/app/.next
-      - local_data:/app/.local-data
+
+  db-migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run db:migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *app-environment
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
 
 volumes:
   node_modules:
   next_cache:
   build_next_cache:
-  local_data:
+  postgres_data:
+  gcs_data:

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { projectInputSchema } from "@/lib/schemas";
 import { requireUser } from "@/lib/server/auth";
+import { assertSameOrigin } from "@/lib/server/auth/request-security";
 import { getRepository } from "@/lib/server/db";
 import { jsonError } from "@/lib/server/http";
 
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    assertSameOrigin(request);
     const user = await requireUser(request);
     const body = await request.json();
     const parsed = projectInputSchema.parse(body);

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireProjectOwner } from "@/lib/server/auth";
+import { assertSameOrigin } from "@/lib/server/auth/request-security";
 import { getRepository } from "@/lib/server/db";
+import { ActiveRunConflictError } from "@/lib/server/db/types";
 import { jsonError } from "@/lib/server/http";
 import { runPitchForge } from "@/lib/server/ai/orchestrator";
 import { getObjectStorage } from "@/lib/server/storage";
@@ -12,18 +14,10 @@ export async function POST(
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    assertSameOrigin(request);
     const { projectId } = await params;
     const repo = getRepository();
     await requireProjectOwner(request, projectId, repo);
-    const existingRuns = await repo.listRuns(projectId);
-    const activeRun = existingRuns.find((run) => ["queued", "running"].includes(run.status));
-    if (activeRun) {
-      return NextResponse.json(
-        { runId: activeRun.id, status: activeRun.status, message: "A run is already active" },
-        { status: 409 }
-      );
-    }
-
     const run = await repo.createRun(projectId);
     await runPitchForge({
       projectId,
@@ -37,6 +31,16 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof ActiveRunConflictError) {
+      return NextResponse.json(
+        {
+          runId: error.run.id,
+          status: error.run.status,
+          message: error.message
+        },
+        { status: 409 }
+      );
+    }
     return jsonError(error);
   }
 }

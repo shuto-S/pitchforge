@@ -11,20 +11,24 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const cookieName = process.env.SESSION_COOKIE_NAME ?? "__session";
   if (request.cookies.has(cookieName)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
   }
 
   if (protectedApiPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.json(
       { error: "Authentication required", code: "UNAUTHENTICATED" },
-      { status: 401 }
+      { status: 401, headers: { "Cache-Control": "no-store" } }
     );
   }
 
   if (protectedPagePrefixes.some((prefix) => pathname.startsWith(prefix))) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 
   return NextResponse.next();

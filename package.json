@@ -9,15 +9,17 @@
     "start": "next start -p ${PORT:-3000}",
     "lint": "eslint .",
     "test": "vitest run",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "auth:provision": "tsx scripts/provision-password-user.ts",
     "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
-    "@google-cloud/firestore": "^8.6.0",
     "@google-cloud/storage": "^7.16.0",
     "@google/genai": "^0.15.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^14.0.0",
     "next": "^15.3.4",
+    "pg": "^8.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uuid": "^11.1.0",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitest/coverage-v8": "^4.1.8",

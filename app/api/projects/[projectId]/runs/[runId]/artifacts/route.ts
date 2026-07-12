@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireProjectOwner } from "@/lib/server/auth";
 import { getRepository } from "@/lib/server/db";
 import { jsonError, notFound } from "@/lib/server/http";
+import { sanitizeCredentialBearingUrls } from "@/lib/safe-external-url";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function GET(
     if (!artifacts) {
       return notFound("Artifacts not found");
     }
-    return NextResponse.json(artifacts);
+    return NextResponse.json(sanitizeCredentialBearingUrls(artifacts));
   } catch (error) {
     return jsonError(error);
   }

@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { getIdentityPlatformAuth } from "@/lib/client/identity-platform";
 
 type CurrentUser = {
   uid: string;
   email: string | null;
   displayName?: string | null;
-  photoURL?: string | null;
   isAdmin: boolean;
   isInvited: boolean;
 };
@@ -25,11 +22,12 @@ export function SiteHeader() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           return null;
@@ -56,51 +54,56 @@ export function SiteHeader() {
 
   async function logout() {
     setIsLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    setLogoutError(null);
     try {
-      await signOut(getIdentityPlatformAuth());
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        throw new Error("Server logout failed");
+      }
+      setUser(null);
+      router.push("/login");
+      router.refresh();
     } catch {
-      // Server session logout is the source of truth here.
+      setLogoutError("ログアウトできませんでした。");
+    } finally {
+      setIsLoggingOut(false);
     }
-    setUser(null);
-    router.push("/login");
-    router.refresh();
   }
 
   return (
-    <header className="border-b border-line bg-panel/85 backdrop-blur">
-      <div className="container flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
-        <Link href="/" className="text-sm font-semibold text-ink">
-          PitchForge
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#070a12]/85 backdrop-blur-xl">
+      <div className="container flex min-h-16 items-center justify-between gap-4 py-3">
+        <Link href="/" className="flex items-baseline gap-2 text-white">
+          <span className="text-sm font-semibold tracking-[-0.02em]">PitchForge</span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-3 text-sm">
-          {user?.isAdmin ? (
-            <Link href="/admin/invites" className="font-semibold text-muted hover:text-ink">
-              招待管理
-            </Link>
-          ) : null}
+        <nav className="flex items-center gap-3 text-sm" aria-label="アカウント">
           {user ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="max-w-[220px] truncate text-muted">
+            <>
+              <span className="hidden max-w-[220px] truncate text-slate-400 sm:block">
                 {user.displayName || user.email || "ログイン中"}
               </span>
               <button
                 type="button"
                 onClick={logout}
                 disabled={isLoggingOut}
-                className="rounded-md border border-line bg-white px-4 py-2 font-semibold text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isLoggingOut ? "ログアウト中..." : "ログアウト"}
+                {isLoggingOut ? "処理中…" : "ログアウト"}
               </button>
-            </div>
+            </>
           ) : isLoading ? null : (
             <Link
               href="/login"
-              className="rounded-md border border-line bg-white px-4 py-2 font-semibold text-ink transition hover:border-ink"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-slate-200 transition hover:border-blue-400/40 hover:bg-blue-400/10"
             >
               ログイン
             </Link>
           )}
+          {logoutError ? (
+            <p role="alert" className="text-xs font-medium text-red-300">
+              {logoutError}
+            </p>
+          ) : null}
         </nav>
       </div>
     </header>

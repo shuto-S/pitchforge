@@ -1,19 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import {
+  MAX_SCREENSHOT_FILES,
+  SCREENSHOT_UPLOAD_ERRORS,
+  validateScreenshotFiles
+} from "@/lib/asset-upload-validation";
 import { requireProjectOwner } from "@/lib/server/auth";
+import { assertSameOrigin } from "@/lib/server/auth/request-security";
 import { getRepository } from "@/lib/server/db";
+import { AssetLimitExceededError } from "@/lib/server/db/types";
 import { jsonError } from "@/lib/server/http";
 import { getObjectStorage } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
-const allowedMimeTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
-const maxFileSize = 5 * 1024 * 1024;
-
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    assertSameOrigin(request);
     const { projectId } = await params;
     const repo = getRepository();
     const { user } = await requireProjectOwner(request, projectId, repo);
@@ -21,41 +26,49 @@ export async function POST(
     const existing = await repo.listAssets(projectId);
     const form = await request.formData();
     const files = form.getAll("files").filter((value): value is File => value instanceof File);
-
-    if (existing.length + files.length > 5) {
-      return NextResponse.json(
-        { error: "Screenshots are limited to 5 files per project" },
-        { status: 400 }
-      );
+    const validationError = validateScreenshotFiles(files, {
+      existingCount: existing.length,
+      requireAtLeastOne: true
+    });
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     const storage = getObjectStorage();
-    const assets = [];
-    for (const file of files) {
-      if (!allowedMimeTypes.has(file.type)) {
-        return NextResponse.json(
-          { error: "Only PNG, JPEG, and WebP screenshots are allowed" },
-          { status: 400 }
+    const uploadedAssets = [];
+    try {
+      for (const file of files) {
+        const bytes = Buffer.from(await file.arrayBuffer());
+        uploadedAssets.push(
+          await storage.saveScreenshot({
+            projectId,
+            ownerUid: user.uid,
+            fileName: file.name,
+            mimeType: file.type,
+            bytes
+          })
         );
       }
-      if (file.size > maxFileSize) {
-        return NextResponse.json(
-          { error: "Each screenshot must be 5MB or smaller" },
-          { status: 400 }
-        );
-      }
-      const bytes = Buffer.from(await file.arrayBuffer());
-      const asset = await storage.saveScreenshot({
+      const assets = await repo.saveAssetsWithinLimit(
         projectId,
-        ownerUid: user.uid,
-        fileName: file.name,
-        mimeType: file.type,
-        bytes
-      });
-      assets.push(await repo.saveAsset(asset));
+        uploadedAssets,
+        MAX_SCREENSHOT_FILES
+      );
+      return NextResponse.json({ assets }, { status: 201 });
+    } catch (error) {
+      // GCS is not transactional with PostgreSQL, so compensate for every object
+      // that was uploaded before storage or metadata registration failed.
+      await Promise.allSettled(
+        uploadedAssets.map((asset) => storage.deleteAsset?.(asset))
+      );
+      if (error instanceof AssetLimitExceededError) {
+        return NextResponse.json(
+          { error: SCREENSHOT_UPLOAD_ERRORS.count },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
-
-    return NextResponse.json({ assets }, { status: 201 });
   } catch (error) {
     return jsonError(error);
   }

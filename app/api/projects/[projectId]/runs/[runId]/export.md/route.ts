@@ -1,6 +1,7 @@
 import { requireProjectOwner } from "@/lib/server/auth";
 import { getRepository } from "@/lib/server/db";
 import { jsonError, notFound } from "@/lib/server/http";
+import { redactCredentialBearingHttpUrls } from "@/lib/safe-external-url";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function GET(
     if (!artifacts) {
       return notFound("Artifacts not found");
     }
-    return new Response(artifacts.markdownExport, {
+    return new Response(redactCredentialBearingHttpUrls(artifacts.markdownExport), {
       headers: {
         "content-type": "text/markdown; charset=utf-8",
         "content-disposition": `attachment; filename=\"pitchforge-${projectId}-${runId}.md\"`
