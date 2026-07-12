@@ -6,6 +6,19 @@ PitchForge is an AI product readiness and improvement workspace for product team
 
 The product makes Google Cloud value visible in the workflow: Cloud Run serves the app, Gemini evaluates products and generates improvement materials, Cloud SQL stores pre-provisioned accounts and user-scoped history, and Cloud Storage keeps uploaded assets.
 
+## Product media
+
+[![PitchForge product overview](docs/media/pitchforge-main.png)](docs/media/pitchforge-demo.mp4)
+
+- [90-second product demo (MP4)](docs/media/pitchforge-demo.mp4)
+- [Product overview](docs/media/pitchforge-overview.png)
+- [GitHub import and AI workflow](docs/media/pitchforge-ai-flow.png)
+- [Five-category evaluation](docs/media/pitchforge-score.png)
+- [Generated review materials](docs/media/pitchforge-artifacts.png)
+- [System architecture](docs/media/pitchforge-architecture.png)
+
+These are curated public product assets used for the ProtoPedia listing and hackathon submission.
+
 ## GitHub-first project setup
 
 New projects can start from a single public GitHub repository URL. PitchForge reads the README and
@@ -35,7 +48,7 @@ artifacts for ProtoPedia and the associated submission form without changing the
 
 This repository is intended to be public.
 
-- Do not commit `.env`, `.env.local`, service account JSON, uploaded screenshots, generated exports, or local database/storage volumes.
+- Do not commit `.env`, `.env.local`, service account JSON, user-uploaded screenshots, unreviewed generated exports, or local database/storage volumes. Curated public product media belongs under `docs/media/`.
 - Keep `.env.example` as placeholders only.
 - Do not paste real API keys, access tokens, service account emails, project IDs, bucket names, or private customer data into README, tests, fixtures, screenshots, or issues.
 - Runtime status and readiness APIs intentionally expose only coarse mode/health labels, not credentials.
