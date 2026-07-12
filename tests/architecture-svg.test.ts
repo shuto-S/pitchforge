@@ -8,7 +8,7 @@ function architectureInput(): ArchitectureSvgInput {
   return {
     project: {
       title: "PitchForge",
-      oneLiner: "AI作戦会議がハッカソン提出物を磨く",
+      oneLiner: "AIがプロダクト評価とレビュー資料を改善する",
       techStack: [
         "Cloud Run",
         "Gemini",
@@ -19,7 +19,7 @@ function architectureInput(): ArchitectureSvgInput {
     },
     artifacts: {
       brief: {
-        oneSentencePitch: "実装済み作品を審査員に届く提出パッケージへ磨き込む。"
+        oneSentencePitch: "プロダクトを評価し、改善とレビュー資料作成まで支援する。"
       },
       directorStrategy: {
         agentStory: "複数の専門エージェントが採点、生成、改善、再採点を行います。"
@@ -89,16 +89,17 @@ describe("architecture SVG export", () => {
   it("shows the implemented PitchForge and Google Cloud processing flow", () => {
     const svg = renderArchitectureSvg(architectureInput());
 
-    expect(svg).toContain("User / product input");
+    expect(svg).toContain("プロダクト入力");
+    expect(svg).toContain("公開GitHub URL");
     expect(svg).toContain("Cloud Run");
-    expect(svg).toContain("Gemini multi-agent loop");
+    expect(svg).toContain("Gemini AI改善ループ");
     expect(svg).toContain("Cloud SQL / PostgreSQL");
     expect(svg).toContain("Cloud Storage");
-    expect(svg).toContain("Password auth");
-    expect(svg).toContain("Pre-provisioned accounts");
-    expect(svg).toContain("Signed httpOnly session");
+    expect(svg).toContain("パスワード認証");
+    expect(svg).toContain("管理者による事前発行");
+    expect(svg).toContain("署名付きhttpOnlyセッション");
     expect(svg).toContain("auth_users, login throttle");
-    expect(svg).toContain("Improvement outputs");
+    expect(svg).toContain("改善成果物");
   });
 
   it("shows the selected-action revision loop without the retired final-judge flow", () => {
@@ -106,15 +107,15 @@ describe("architecture SVG export", () => {
 
     expect(svg).toContain('data-loop-step="draft-judge"');
     expect(svg).toContain('data-loop-step="revision-planner"');
-    expect(svg).toContain("Revision planner");
-    expect(svg).toContain("selects actions");
+    expect(svg).toContain("改善対象");
+    expect(svg).toContain("を選択");
     expect(svg).toContain('data-loop-step="optimizer-candidate"');
     expect(svg).toContain('data-loop-step="selected-only-merge"');
-    expect(svg).toContain("others unchanged");
+    expect(svg).toContain("他は維持");
     expect(svg).toContain('data-loop-step="judge-observe"');
     expect(svg).toContain('data-loop-edge="improved-next-round"');
     expect(svg).toContain(
-      "Improved: accept + next round · No gain: discard + stop · Maximum 2 rounds"
+      "改善: 採用して次へ · 変化なし: 破棄して停止 · 最大2ラウンド"
     );
     expect(svg).not.toContain("Final judge");
   });
@@ -123,7 +124,7 @@ describe("architecture SVG export", () => {
     const svg = renderArchitectureSvg(architectureInput());
 
     expect(svg).toMatch(
-      /<text[^>]+text-anchor="end"><tspan x="1536" y="870">Generated deterministically from product data and PitchForge outputs<\/tspan><\/text>/u
+      /<text[^>]+text-anchor="end"><tspan x="1536" y="870">プロダクト情報とPitchForge成果物から決定的に生成<\/tspan><\/text>/u
     );
   });
 

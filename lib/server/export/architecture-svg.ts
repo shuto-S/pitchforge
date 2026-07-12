@@ -206,17 +206,11 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
     92,
     2
   );
-  const agentStory = wrapText(artifacts.directorStrategy.agentStory, 78, 1);
-  const architectureNote = wrapText(
-    artifacts.protoPediaContent.systemArchitecture,
-    27,
-    4
-  );
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}" role="img" aria-labelledby="architecture-title architecture-description">
-  <title id="architecture-title">PitchForge product improvement architecture</title>
-  <desc id="architecture-description">A deterministic diagram of the PitchForge evaluation and improvement flow for ${escapeXml(projectTitle.join(" "))}</desc>
+  <title id="architecture-title">PitchForge 評価・改善アーキテクチャ</title>
+  <desc id="architecture-description">${escapeXml(projectTitle.join(" "))}の入力、評価、改善、成果物生成を示すアーキテクチャ図</desc>
   <defs>
     <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#ea6a24" />
@@ -227,7 +221,7 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
     ${renderText({
       x: 64,
       y: 58,
-      lines: ["PitchForge product improvement architecture"],
+      lines: ["PitchForge 評価・改善アーキテクチャ"],
       size: 32,
       lineHeight: 36,
       weight: 700
@@ -253,12 +247,12 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
     <g data-section="project-input">
       <rect x="60" y="210" width="250" height="270" rx="18" fill="#ffffff" stroke="#bbb3a7" stroke-width="2" />
       <rect x="60" y="210" width="250" height="10" rx="5" fill="#151515" />
-      ${renderText({ x: 82, y: 254, lines: ["1. User / product input"], size: 18, lineHeight: 22, weight: 700 })}
+      ${renderText({ x: 82, y: 254, lines: ["1. プロダクト入力"], size: 18, lineHeight: 22, weight: 700 })}
       ${renderText({ x: 82, y: 289, lines: projectTitle, size: 22, lineHeight: 27, weight: 700, fill: "#ea6a24" })}
       ${renderText({
         x: 82,
         y: 358,
-        lines: ["Product description", "Cloud and agent notes", "Screenshots / assets"],
+        lines: ["公開GitHub URL", "README / ルート設定", "画面素材"],
         size: 15,
         lineHeight: 28,
         fill: "#5d5952"
@@ -280,15 +274,15 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
 
     <g data-section="gemini-loop">
       <rect x="630" y="160" width="540" height="370" rx="22" fill="#f0ecff" stroke="#7758bd" stroke-width="2" />
-      ${renderText({ x: 656, y: 201, lines: ["3. Gemini multi-agent loop"], size: 21, lineHeight: 25, weight: 700, fill: "#5d3ba4" })}
+      ${renderText({ x: 656, y: 201, lines: ["3. Gemini AI改善ループ"], size: 21, lineHeight: 25, weight: 700, fill: "#5d3ba4" })}
       ${renderText({ x: 656, y: 228, lines: ["Vertex AI / Gemini"], size: 13, lineHeight: 16, weight: 600, fill: "#7758bd" })}
 
       <rect x="660" y="247" width="110" height="42" rx="12" fill="#ffffff" stroke="#c8b9e8" />
       <rect x="800" y="247" width="125" height="42" rx="12" fill="#ffffff" stroke="#c8b9e8" />
       <rect x="955" y="247" width="130" height="42" rx="12" fill="#ffffff" stroke="#c8b9e8" />
-      ${renderText({ x: 715, y: 274, lines: ["Brief"], size: 14, lineHeight: 17, weight: 700, anchor: "middle" })}
-      ${renderText({ x: 862, y: 274, lines: ["Baseline review"], size: 13, lineHeight: 16, weight: 700, anchor: "middle" })}
-      ${renderText({ x: 1020, y: 274, lines: ["Director"], size: 14, lineHeight: 17, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 715, y: 274, lines: ["理解"], size: 14, lineHeight: 17, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 862, y: 274, lines: ["5観点評価"], size: 13, lineHeight: 16, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 1020, y: 274, lines: ["改善設計"], size: 14, lineHeight: 17, weight: 700, anchor: "middle" })}
       ${renderText({ x: 785, y: 274, lines: ["→"], size: 18, lineHeight: 20, weight: 700, anchor: "middle", fill: "#7758bd" })}
       ${renderText({ x: 940, y: 274, lines: ["→"], size: 18, lineHeight: 20, weight: 700, anchor: "middle", fill: "#7758bd" })}
 
@@ -297,7 +291,7 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
       ${renderText({
         x: 872,
         y: 335,
-        lines: ["Parallel generation: Demos · Public copy · Visuals · Checklist"],
+        lines: ["並列生成: デモ台本 · 紹介文 · ビジュアル案 · 公開チェック"],
         size: 12,
         lineHeight: 15,
         weight: 700,
@@ -308,39 +302,39 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
       <rect x="660" y="367" width="110" height="42" rx="12" fill="#ffffff" stroke="#c8b9e8" data-loop-step="draft-judge" />
       <rect x="800" y="367" width="125" height="42" rx="12" fill="#fff4ec" stroke="#ea6a24" data-loop-step="revision-planner" />
       <rect x="955" y="367" width="130" height="42" rx="12" fill="#fff4ec" stroke="#ea6a24" data-loop-step="optimizer-candidate" />
-      ${renderText({ x: 715, y: 394, lines: ["Draft review"], size: 13, lineHeight: 16, weight: 700, anchor: "middle" })}
-      ${renderText({ x: 862, y: 385, lines: ["Revision planner", "selects actions"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
-      ${renderText({ x: 1020, y: 385, lines: ["Optimizer candidate", "for selected actions"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 715, y: 394, lines: ["成果物評価"], size: 13, lineHeight: 16, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 862, y: 385, lines: ["改善対象", "を選択"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 1020, y: 385, lines: ["選択成果物", "だけ改訂"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
       ${renderText({ x: 785, y: 394, lines: ["→"], size: 18, lineHeight: 20, weight: 700, anchor: "middle", fill: "#ea6a24" })}
       ${renderText({ x: 940, y: 394, lines: ["→"], size: 18, lineHeight: 20, weight: 700, anchor: "middle", fill: "#ea6a24" })}
 
       <path d="M1020 409 V419 H807 V427" fill="none" stroke="#ea6a24" stroke-width="2" marker-end="url(#arrowhead)" />
       <rect x="735" y="427" width="145" height="42" rx="12" fill="#fff4ec" stroke="#ea6a24" data-loop-step="selected-only-merge" />
       <rect x="920" y="427" width="140" height="42" rx="12" fill="#fff4ec" stroke="#ea6a24" data-loop-step="judge-observe" />
-      ${renderText({ x: 807, y: 444, lines: ["Selected-only merge", "others unchanged"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
-      ${renderText({ x: 990, y: 444, lines: ["Quality review", "score delta"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 807, y: 444, lines: ["選択箇所だけ反映", "他は維持"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
+      ${renderText({ x: 990, y: 444, lines: ["再評価", "変化を確認"], size: 11, lineHeight: 14, weight: 700, anchor: "middle" })}
       ${renderText({ x: 900, y: 454, lines: ["→"], size: 18, lineHeight: 20, weight: 700, anchor: "middle", fill: "#ea6a24" })}
       <path data-loop-edge="improved-next-round" d="M990 469 V483 H862 V419" fill="none" stroke="#7758bd" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrowhead)" />
 
       ${renderText({
         x: 656,
         y: 499,
-        lines: ["Improved: accept + next round · No gain: discard + stop · Maximum 2 rounds"],
+        lines: ["改善: 採用して次へ · 変化なし: 破棄して停止 · 最大2ラウンド"],
         size: 11,
         lineHeight: 14,
         weight: 600,
         fill: "#5d3ba4"
       })}
-      ${renderText({ x: 656, y: 519, lines: agentStory, size: 11, lineHeight: 14, fill: "#5d5270" })}
+      ${renderText({ x: 656, y: 519, lines: ["判断、実行、再評価、停止までをログで追跡"], size: 11, lineHeight: 14, fill: "#5d5270" })}
     </g>
 
     <g data-section="improvement-outputs">
       <rect x="1200" y="210" width="340" height="270" rx="18" fill="#fff4ec" stroke="#ea6a24" stroke-width="2" />
-      ${renderText({ x: 1224, y: 254, lines: ["4. Improvement outputs"], size: 20, lineHeight: 24, weight: 700, fill: "#b64c17" })}
+      ${renderText({ x: 1224, y: 254, lines: ["4. 改善成果物"], size: 20, lineHeight: 24, weight: 700, fill: "#b64c17" })}
       ${renderText({
         x: 1224,
         y: 300,
-        lines: ["Scores before / after", "Demo scripts", "Public product copy", "Visual concepts", "Readiness checklist", "Markdown / JSON"],
+        lines: ["評価 Before / After", "デモ台本", "公開用紹介文", "ビジュアル案", "公開前チェック", "Markdown / JSON"],
         size: 15,
         lineHeight: 29,
         fill: "#603a27"
@@ -349,14 +343,14 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
 
     <g data-section="architecture-note">
       <rect x="60" y="568" width="250" height="122" rx="16" fill="#ffffff" stroke="#d7d1c7" />
-      ${renderText({ x: 80, y: 600, lines: ["Architecture note"], size: 15, lineHeight: 18, weight: 700 })}
-      ${renderText({ x: 80, y: 628, lines: architectureNote, size: 12, lineHeight: 16, fill: "#5d5952" })}
+      ${renderText({ x: 80, y: 600, lines: ["処理の要点"], size: 15, lineHeight: 18, weight: 700 })}
+      ${renderText({ x: 80, y: 628, lines: ["GitHubから下書きを生成", "5観点で弱点を特定", "選択成果物だけを改訂"], size: 12, lineHeight: 16, fill: "#5d5952" })}
     </g>
 
     <g data-section="password-auth">
       <rect x="360" y="568" width="290" height="122" rx="16" fill="#ffffff" stroke="#4d8bd6" stroke-width="2" />
-      ${renderText({ x: 382, y: 606, lines: ["Password auth"], size: 18, lineHeight: 22, weight: 700, fill: "#245f9f" })}
-      ${renderText({ x: 382, y: 638, lines: ["Pre-provisioned accounts", "Signed httpOnly session"], size: 14, lineHeight: 24, fill: "#4d5964" })}
+      ${renderText({ x: 382, y: 606, lines: ["パスワード認証"], size: 18, lineHeight: 22, weight: 700, fill: "#245f9f" })}
+      ${renderText({ x: 382, y: 638, lines: ["管理者による事前発行", "署名付きhttpOnlyセッション"], size: 14, lineHeight: 24, fill: "#4d5964" })}
     </g>
 
     <g data-section="cloud-sql">
@@ -371,13 +365,13 @@ export function renderArchitectureSvg(input: ArchitectureSvgInput): string {
       ${renderText({ x: 1042, y: 638, lines: ["Screenshots", "Uploaded project assets"], size: 14, lineHeight: 24, fill: "#4d5964" })}
     </g>
 
-    ${renderText({ x: 64, y: 744, lines: ["Project technology context (deduplicated, max 8)"], size: 15, lineHeight: 18, weight: 700, fill: "#5d5952" })}
+    ${renderText({ x: 64, y: 744, lines: ["主要技術（重複除外・最大8件）"], size: 15, lineHeight: 18, weight: 700, fill: "#5d5952" })}
     ${renderTechNodes(project.techStack)}
 
     ${renderText({
       x: 1536,
       y: 870,
-      lines: ["Generated deterministically from product data and PitchForge outputs"],
+      lines: ["プロダクト情報とPitchForge成果物から決定的に生成"],
       size: 12,
       lineHeight: 15,
       fill: "#777169",
