@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { shouldRequestRuntimeStatus } from "@/lib/client/public-demo";
 
-type RuntimeStatus = {
+export type RuntimeStatus = {
   runtimeMode: string;
   aiMode: string;
   datastoreMode: string;
@@ -46,15 +47,20 @@ const proofItems = [
   }
 ];
 
-export function GcpProof() {
-  const [status, setStatus] = useState<RuntimeStatus | null>(null);
+export function GcpProof({ statusOverride }: { statusOverride?: RuntimeStatus }) {
+  const [status, setStatus] = useState<RuntimeStatus | null>(statusOverride ?? null);
 
   useEffect(() => {
+    if (!shouldRequestRuntimeStatus(statusOverride)) {
+      setStatus(statusOverride ?? null);
+      return undefined;
+    }
+
     fetch("/api/system/status")
       .then((response) => response.json())
       .then(setStatus)
       .catch(() => undefined);
-  }, []);
+  }, [statusOverride]);
 
   return (
     <section className="cockpit-panel p-5 sm:p-7">

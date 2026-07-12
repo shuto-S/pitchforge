@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { shouldLoadCurrentUser } from "@/lib/client/public-demo";
+import {
+  resolveExportUrls,
+  shouldLoadCurrentUser,
+  shouldRequestRuntimeStatus
+} from "@/lib/client/public-demo";
 import {
   publicDemoArtifacts,
   publicDemoBaselineScore,
@@ -56,6 +60,57 @@ describe("public demo", () => {
       expect(source).not.toContain("/api/");
       expect(source).not.toMatch(/\bfetch\s*\(/);
     }
+  });
+
+  it("reuses the full workspace flow with local-only overrides", async () => {
+    const source = await readFile("components/public-demo-workspace.tsx", "utf8");
+    const architecture = await readFile("public/demo/pitchforge-architecture.svg", "utf8");
+
+    for (const label of ["概要", "AI改善フロー", "5観点評価", "成果物", "エクスポート"]) {
+      expect(source).toContain(`label: "${label}"`);
+    }
+    expect(source).toContain("statusOverride={demoRuntimeStatus}");
+    expect(source).toContain("markdownUrl={markdownUrl}");
+    expect(source).toContain('architectureUrl={isCompleted ? "/demo/pitchforge-architecture.svg"');
+    expect(architecture).toContain("<svg");
+  });
+
+  it("resolves demo data without authenticated API fallbacks", () => {
+    const status = {
+      runtimeMode: "cloud-run",
+      aiMode: "sample-only",
+      datastoreMode: "sample-data",
+      storageMode: "none",
+      authMode: "public-read-only",
+      cloudRunService: "configured",
+      googleCloudProject: "configured",
+      gcsBucket: "not-used"
+    };
+    const urls = resolveExportUrls({
+      projectId: "public-demo-project",
+      runId: "public-demo-run",
+      markdownUrl: "data:text/markdown,demo",
+      architectureUrl: "/demo/pitchforge-architecture.svg"
+    });
+
+    expect(shouldRequestRuntimeStatus(status)).toBe(false);
+    expect(urls).toEqual({
+      markdown: "data:text/markdown,demo",
+      architecture: "/demo/pitchforge-architecture.svg"
+    });
+    expect(Object.values(urls).join(" ")).not.toContain("/api/");
+  });
+
+  it("keeps reused components wired to the no-request demo overrides", async () => {
+    const [proofSource, exportSource] = await Promise.all([
+      readFile("components/gcp-proof.tsx", "utf8"),
+      readFile("components/export-panel.tsx", "utf8")
+    ]);
+
+    expect(proofSource).toContain("shouldRequestRuntimeStatus(statusOverride)");
+    expect(exportSource).toContain("resolveExportUrls({");
+    expect(exportSource).toContain("markdownUrl: markdownUrlOverride");
+    expect(exportSource).toContain("architectureUrl: architectureUrlOverride");
   });
 
   it("uses the public demo CTA instead of the authenticated sample form", async () => {

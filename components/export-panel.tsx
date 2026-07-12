@@ -1,28 +1,34 @@
 import type { ArtifactBundle } from "@/lib/schemas/artifact";
 import { ArchitectureExport } from "@/components/architecture-export";
+import { resolveExportUrls } from "@/lib/client/public-demo";
 import { sanitizeCredentialBearingUrls } from "@/lib/safe-external-url";
 
 export function ExportPanel({
   projectId,
   runId,
-  artifacts
+  artifacts,
+  markdownUrl: markdownUrlOverride,
+  architectureUrl: architectureUrlOverride
 }: {
   projectId: string;
   runId?: string;
   artifacts: ArtifactBundle | null;
+  markdownUrl?: string;
+  architectureUrl?: string;
 }) {
-  const mdUrl = runId ? `/api/projects/${projectId}/runs/${runId}/export.md` : "#";
+  const resolvedUrls = resolveExportUrls({
+    projectId,
+    runId: artifacts ? runId : undefined,
+    markdownUrl: markdownUrlOverride,
+    architectureUrl: architectureUrlOverride
+  });
+  const mdUrl = resolvedUrls.markdown;
   const jsonUrl = artifacts
     ? `data:application/json;charset=utf-8,${encodeURIComponent(
         JSON.stringify(sanitizeCredentialBearingUrls(artifacts.jsonExport), null, 2)
       )}`
     : "#";
-  const architectureUrl =
-    artifacts && runId
-      ? `/api/projects/${encodeURIComponent(projectId)}/runs/${encodeURIComponent(
-          runId
-        )}/architecture.svg`
-      : undefined;
+  const architectureUrl = resolvedUrls.architecture;
 
   return (
     <section className="cockpit-panel p-5 sm:p-7">
@@ -42,7 +48,8 @@ export function ExportPanel({
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <a
           aria-disabled={!artifacts || !runId}
-          href={artifacts && runId ? mdUrl : undefined}
+          href={artifacts && (runId || markdownUrlOverride) ? mdUrl : undefined}
+          download={markdownUrlOverride ? "pitchforge-demo.md" : undefined}
           className="cockpit-button-primary aria-disabled:pointer-events-none aria-disabled:opacity-40"
         >
           Markdownを保存

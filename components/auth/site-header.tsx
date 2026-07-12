@@ -19,6 +19,7 @@ type MeResponse = {
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const isPublicDemo = !shouldLoadCurrentUser(pathname);
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +85,20 @@ export function SiteHeader() {
           <span className="text-sm font-semibold tracking-[-0.02em]">PitchForge</span>
         </Link>
         <nav className="flex items-center gap-3 text-sm" aria-label="アカウント">
-          {user ? (
+          {isPublicDemo ? (
+            <>
+              <span className="hidden max-w-[220px] truncate text-slate-400 sm:block">
+                サンプルモード
+              </span>
+              <Link
+                href="/login"
+                prefetch={false}
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-slate-200 transition hover:border-blue-400/40 hover:bg-blue-400/10"
+              >
+                ログイン
+              </Link>
+            </>
+          ) : user ? (
             <>
               <span className="hidden max-w-[220px] truncate text-slate-400 sm:block">
                 {user.displayName || user.email || "ログイン中"}
