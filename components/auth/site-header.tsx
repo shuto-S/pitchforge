@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { shouldLoadCurrentUser } from "@/lib/client/public-demo";
 
 type CurrentUser = {
   uid: string;
@@ -25,6 +26,12 @@ export function SiteHeader() {
   const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!shouldLoadCurrentUser(pathname)) {
+      setUser(null);
+      setIsLoading(false);
+      return undefined;
+    }
+
     let isMounted = true;
 
     fetch("/api/auth/me", { cache: "no-store" })

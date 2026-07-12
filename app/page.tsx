@@ -51,7 +51,7 @@ export default function HomePage() {
               <Link href="/projects/new" className="cockpit-button-primary px-5">
                 プロジェクトを評価
               </Link>
-              <Link href="/projects/new?sample=1" className="cockpit-button-secondary px-5">
+              <Link href="/demo" prefetch={false} className="cockpit-button-secondary px-5">
                 サンプルで試す
               </Link>
             </div>

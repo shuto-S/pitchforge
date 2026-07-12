@@ -6,6 +6,10 @@ PitchForge is an AI product readiness and improvement workspace for product team
 
 The product makes Google Cloud value visible in the workflow: Cloud Run serves the app, Gemini evaluates products and generates improvement materials, Cloud SQL stores pre-provisioned accounts and user-scoped history, and Cloud Storage keeps uploaded assets.
 
+The public `/demo` route is a statically rendered, read-only workspace. It uses committed sample data
+and never calls the project, GitHub import, asset, run, Gemini, Cloud SQL, or Cloud Storage APIs. The
+authenticated `/projects` routes remain the only path for creating projects and running AI workflows.
+
 ## Product media
 
 [![PitchForge product overview](docs/media/pitchforge-main.png)](docs/media/pitchforge-demo.mp4)
