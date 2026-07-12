@@ -11,11 +11,11 @@ export const officialScoreCategoryKeys = [
 export type OfficialScoreCategoryKey = (typeof officialScoreCategoryKeys)[number];
 
 export const officialScoreCategoryLabels: Record<OfficialScoreCategoryKey, string> = {
-  agent_centrality: "AIエージェントが価値の中心になっているか",
-  problem_approach: "設定した課題へのアプローチ力",
-  usability: "ユーザビリティ",
-  experience_value: "実用性・体験価値の魅力",
-  implementation: "実装力"
+  agent_centrality: "AI中核価値",
+  problem_approach: "課題適合",
+  usability: "使いやすさ",
+  experience_value: "体験価値",
+  implementation: "実装・運用準備"
 };
 
 export const scoreCategorySchema = z.enum(officialScoreCategoryKeys);

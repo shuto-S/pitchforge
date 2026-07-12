@@ -17,35 +17,35 @@ const categoryDefinitions: Array<
 > = [
   {
     key: "agent_centrality",
-    label: "AIエージェントが価値の中心になっているか",
+    label: "AI中核価値",
     evidence: ["複数のAIエージェントが評価、計画、成果物改訂、再評価を順番に実行します。"],
     reason: "判断とタスク実行を伴う改善ループが中核体験になっています。",
     improvement: "各ラウンドの選択理由と停止理由をデモで明示します。"
   },
   {
     key: "problem_approach",
-    label: "設定した課題へのアプローチ力",
+    label: "課題適合",
     evidence: ["プロダクトチーム向けに評価、デモ台本、公開文、チェックリストを生成します。"],
     reason: "対象ユーザーとレビュー準備の課題に生成物が直接対応しています。",
     improvement: "Before/Afterで準備時間と品質差を具体化します。"
   },
   {
     key: "usability",
-    label: "ユーザビリティ",
+    label: "使いやすさ",
     evidence: ["プロダクト情報と画像を入力すると、一度の実行で評価と改善資料を確認できます。"],
     reason: "入力から評価、改善、成果物確認までが一つのワークスペースにまとまっています。",
     improvement: "初回利用者向けのサンプル導線を強調します。"
   },
   {
     key: "experience_value",
-    label: "実用性・体験価値の魅力",
+    label: "体験価値",
     evidence: ["30秒、90秒、3分台本と公開用紹介文を実際のレビューや発信に転用できます。"],
     reason: "評価だけでなく、そのまま編集して使える成果物まで得られます。",
     improvement: "改善前後の成果を短いデモで示します。"
   },
   {
     key: "implementation",
-    label: "実装力",
+    label: "実装・運用準備",
     evidence: ["Cloud Run、Gemini、Cloud SQL、Cloud Storageを連携しています。"],
     reason: "AI実行、認証、永続化、素材管理をGoogle Cloud上で分担しています。",
     improvement: "構成図と運用上の失敗経路を技術資料へ含めます。"
