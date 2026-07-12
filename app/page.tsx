@@ -52,7 +52,7 @@ export default function HomePage() {
                 プロジェクトを評価
               </Link>
               <Link href="/demo" prefetch={false} className="cockpit-button-secondary px-5">
-                サンプルで試す
+                サンプルデモ
               </Link>
             </div>
             <div className="mt-9 flex flex-wrap gap-2">
